@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사내 프로젝트 통합 관리 시스템</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        body {
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+        .header {
+            background-color: #1e293b;
+            color: #ffffff;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 20px;
+            display: table;
+            width: 100%;
+        }
+        .row {
+            display: table-row;
+        }
+        .sidebar {
+            display: table-cell;
+            width: 30%;
+            padding-right: 20px;
+            vertical-align: top;
+        }
+        .main-content {
+            display: table-cell;
+            width: 70%;
+            vertical-align: top;
+        }
+        .card {
+            background: #ffffff;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 25px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+        }
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            font-size: 18px;
+            color: #0f172a;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            color: #475569;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 14px;
+            background-color: #fff;
+        }
+        .form-group textarea {
+            resize: vertical;
+            height: 100px;
+        }
+        .btn {
+            background-color: #2563eb;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            width: 100%;
+            transition: background-color 0.2s;
+        }
+        .btn:hover {
+            background-color: #1d4ed8;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+        th, td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8fafc;
+            color: #64748b;
+            font-weight: 600;
+        }
+        tr:hover {
+            background-color: #f8fafc;
+            cursor: pointer;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .badge-waiting { background-color: #fef3c7; color: #d97706; }
+        .badge-progress { background-color: #dbeafe; color: #2563eb; }
+        .badge-complete { background-color: #dcfce7; color: #16a34a; }
+        
+        .detail-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+        .detail-meta {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 15px;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+        }
+        .detail-meta span {
+            margin-right: 20px;
+        }
+        .detail-content {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #334155;
+            white-space: pre-line;
+            margin-bottom: 25px;
+            padding: 15px;
+            background: #fafafa;
+            border-left: 4px solid #cbd5e1;
+        }
+        .feedback-section {
+            margin-top: 30px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        .feedback-item {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+            border: 1px solid #f1f5f9;
+        }
+        .feedback-item .meta {
+            font-size: 12px;
+            color: #64748b;
+            margin-bottom: 6px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .feedback-item .comment {
+            font-size: 14px;
+            color: #334155;
+        }
+        .feedback-form {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+        .feedback-form input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .feedback-form button {
+            background-color: #475569;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .feedback-form button:hover {
+            background-color: #334155;
+        }
+        .status-select-sm {
+            padding: 4px 8px;
+            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>💼 사내 프로젝트 진행 현황 통합 대시보드</h1>
+        <div style="font-size: 14px; color: #cbd5e1;">실시간 협업 및 피드백 시스템</div>
+    </div>
+
+    <div class="container">
+        <div class="row">
+            <div class="sidebar">
+                <div class="card">
+                    <h2>➕ 새 프로젝트 등록</h2>
+                    <form id="projectForm">
+                        <div class="form-group">
+                            <label for="p_title">프로젝트명</label>
+                            <input type="text" id="p_title" required placeholder="예: 서비스 모듈 구현">
+                        </div>
+                        <div class="form-group">
+                            <label for="p_assignee">담당자</label>
+                            <input type="text" id="p_assignee" required placeholder="담당자 성함">
+                        </div>
+                        <div class="form-group">
+                            <label for="p_duedate">만기일</label>
+                            <input type="date" id="p_duedate" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="p_status">진행 상태</label>
+                            <select id="p_status">
+                                <option value="대기 중">대기 중</option>
+                                <option value="진행 중" selected>진행 중</option>
+                                <option value="완료">완료</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="p_content">프로젝트 내용</label>
+                            <textarea id="p_content" required placeholder="상세 추진 계획 및 연동 정의 내용을 입력하세요..."></textarea>
+                        </div>
+                        <button type="submit" class="btn">프로젝트 추가</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="main-content">
+                <div class="card">
+                    <h2>📋 전체 프로젝트 목록 (클릭 시 상세 정보 및 피드백 조회)</h2>
+                    <div style="overflow-x: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>프로젝트명</th>
+                                    <th>담당자</th>
+                                    <th>만기일</th>
+                                    <th>상태</th>
+                                </tr>
+                            </thead>
+                            <tbody id="projectTableBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card" id="detailPanel" style="display: none;">
+                    <div class="detail-header">
+                        <h2 id="detailTitle" style="border-bottom: none; margin: 0; font-size: 20px;">프로젝트 제목</h2>
+                        <select id="detailStatusSelect" class="status-select-sm" onchange="updateActiveProjectStatus(this.value)">
+                            <option value="대기 중">대기 중</option>
+                            <option value="진행 중">진행 중</option>
+                            <option value="완료">완료</option>
+                        </select>
+                    </div>
+                    <div class="detail-meta">
+                        <span>👤 <b>담당자:</b> <span id="detailAssignee"></span></span>
+                        <span>📅 <b>만기일:</b> <span id="detailDueDate"></span></span>
+                    </div>
+                    <div class="detail-content" id="detailContent">
+                        상세 내용이 이곳에 표시됩니다.
+                    </div>
+
+                    <div class="feedback-section">
+                        <h3>💬 피드백 및 댓글 기록</h3>
+                        <div id="feedbackList">
+                        </div>
+                        <form id="feedbackForm" class="feedback-form">
+                            <input type="text" id="f_writer" placeholder="작성자 성함" style="width: 120px; flex: none;" required>
+                            <input type="text" id="f_comment" placeholder="프로젝트에 대한 피드백이나 진행 상황을 남겨주세요." required>
+                            <button type="submit">등록</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let projects = [
+            {
+                id: 1,
+                title: "AI 기반 스마트 축산 바이오캡슐 센서 파싱 모듈 고도화",
+                assignee: "채민강 대리",
+                due_date: "2026-07-20",
+                status: "진행 중",
+                content: "소의 체온 및 활동량 데이터를 실시간으로 파싱하여 발정기 및 질병 징후를 예측하는 백엔드 아키텍처 고도화 작업.\nRedis 캐싱 레이어를 도입하여 동시 트래픽 처리 성능을 30% 개선할 계획.",
+                feedbacks: [
+                    { writer: "대표이사", comment: "LoRa 게이트웨이 수신 데이터 유실률 체크 로직도 함께 반영 부탁드립니다.", date: "2026-07-05 11:20" },
+                    { writer: "채민강", comment: "확인했습니다. Redis 큐 버퍼링 설계 추가하여 유실률 없도록 보완하겠습니다.", date: "2026-07-05 14:15" }
+                ]
+            },
+            {
+                id: 2,
+                title: "해외 바이어 미팅용 글로벌 IR 리플렛 디자인 및 번역",
+                assignee: "홍길동 팀장",
+                due_date: "2026-08-15",
+                status: "대기 중",
+                content: "베트남 및 호주 축산 농가 진출을 위한 영문/베트남어 기술 제안서 및 회사 IR 리플렛 제작 건.\nHancom Show 원본 소스를 고해상도 PDF로 내보낼 때 폰트 깨짐 현상이 없는지 사전 검증 필요.",
+                feedbacks: []
+            }
+        ];
+
+        let activeProjectId = 1;
+
+        function render() {
+            const tbody = document.getElementById('projectTableBody');
+            tbody.innerHTML = '';
+
+            projects.forEach(p => {
+                const tr = document.createElement('tr');
+                if(p.id === activeProjectId) {
+                    tr.style.backgroundColor = '#f1f5f9';
+                }
+                tr.onclick = () => selectProject(p.id);
+
+                let statusBadge = '';
+                if(p.status === '대기 중') statusBadge = '<span class="badge badge-waiting">대기 중</span>';
+                else if(p.status === '진행 중') statusBadge = '<span class="badge badge-progress">진행 중</span>';
+                else if(p.status === '완료') statusBadge = '<span class="badge badge-complete">완료</span>';
+
+                tr.innerHTML = `
+                    <td style="font-weight: 500;">${p.title}</td>
+                    <td>${p.assignee}</td>
+                    <td>${p.due_date}</td>
+                    <td>${statusBadge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            const activeProj = projects.find(p => p.id === activeProjectId);
+            if (activeProj) {
+                document.getElementById('detailPanel').style.display = 'block';
+                document.getElementById('detailTitle').innerText = activeProj.title;
+                document.getElementById('detailAssignee').innerText = activeProj.assignee;
+                document.getElementById('detailDueDate').innerText = activeProj.due_date;
+                document.getElementById('detailContent').innerText = activeProj.content;
+                document.getElementById('detailStatusSelect').value = activeProj.status;
+
+                const fbList = document.getElementById('feedbackList');
+                fbList.innerHTML = '';
+                if(activeProj.feedbacks.length === 0) {
+                    fbList.innerHTML = '<div style="color: #94a3b8; font-size: 13px; padding: 10px 0;">아직 등록된 피드백이 없습니다. 첫 의견을 남겨보세요!</div>';
+                } else {
+                    activeProj.feedbacks.forEach(fb => {
+                        const div = document.createElement('div');
+                        div.className = 'feedback-item';
+                        div.innerHTML = `
+                            <div class="meta">
+                                <strong>${fb.writer}</strong>
+                                <span>${fb.date}</span>
+                            </div>
+                            <div class="comment">${fb.comment}</div>
+                        `;
+                        fbList.appendChild(div);
+                    });
+                }
+            }
+        }
+
+        function selectProject(id) {
+            activeProjectId = id;
+            render();
+        }
+
+        function updateActiveProjectStatus(newStatus) {
+            const activeProj = projects.find(p => p.id === activeProjectId);
+            if(activeProj) {
+                activeProj.status = newStatus;
+                render();
+            }
+        }
+
+        document.getElementById('projectForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const title = document.getElementById('p_title').value;
+            const assignee = document.getElementById('p_assignee').value;
+            const duedate = document.getElementById('p_duedate').value;
+            const status = document.getElementById('p_status').value;
+            const content = document.getElementById('p_content').value;
+
+            const newProj = {
+                id: Date.now(),
+                title: title,
+                assignee: assignee,
+                due_date: duedate,
+                status: status,
+                content: content,
+                feedbacks: []
+            };
+
+            projects.push(newProj);
+            activeProjectId = newProj.id;
+            render();
+            this.reset();
+        });
+
+        document.getElementById('feedbackForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const writer = document.getElementById('f_writer').value;
+            const comment = document.getElementById('f_comment').value;
+
+            const activeProj = projects.find(p => p.id === activeProjectId);
+            if (activeProj) {
+                const now = new Date();
+                const dateStr = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+                
+                activeProj.feedbacks.push({
+                    writer: writer,
+                    comment: comment,
+                    date: dateStr
+                });
+                
+                render();
+                document.getElementById('f_comment').value = '';
+            }
+        });
+
+        render();
+    </script>
+</body>
+</html>

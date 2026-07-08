@@ -14,16 +14,12 @@ type NotifyPayload = {
   type?: "confirm_request" | "deadline" | "comment";
 };
 
-function parseWebhookMap() {
-  const raw = Deno.env.get("JANDI_WEBHOOK_URLS");
-  if (!raw) return {};
-
-  try {
-    return JSON.parse(raw) as Record<string, string>;
-  } catch {
-    return {};
-  }
-}
+const recipientWebhookEnv: Record<string, string> = {
+  "이세언": "JANDI_WEBHOOK_LEE_SEEON",
+  "최창혁": "JANDI_WEBHOOK_CHOI_CHANGHYUK",
+  "박수민": "JANDI_WEBHOOK_PARK_SUMIN",
+  "채민강": "JANDI_WEBHOOK_CHAE_MINKANG",
+};
 
 function normalizeName(name?: string) {
   return String(name || "").trim();
@@ -31,12 +27,12 @@ function normalizeName(name?: string) {
 
 function pickWebhookUrl(payload: NotifyPayload) {
   const fallbackUrl = Deno.env.get("JANDI_WEBHOOK_URL") || "";
-  const webhookMap = parseWebhookMap();
   const recipientName = normalizeName(payload.recipientName);
+  const envName = recipientWebhookEnv[recipientName];
 
-  if (!recipientName || recipientName === "전체") return fallbackUrl;
+  if (!envName) return fallbackUrl;
 
-  return webhookMap[recipientName] || fallbackUrl;
+  return Deno.env.get(envName) || fallbackUrl;
 }
 
 function buildJandiBody(payload: NotifyPayload) {

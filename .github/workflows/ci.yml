@@ -1,0 +1,58 @@
+name: Static validation
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate HTML and repository safety
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          path = Path("index.html")
+          if not path.exists():
+              raise SystemExit("index.html is missing")
+
+          text = path.read_text(encoding="utf-8")
+          required = ["<!DOCTYPE html>", "<html", "</html>", "<script", "</script>"]
+          missing = [item for item in required if item.lower() not in text.lower()]
+          if missing:
+              raise SystemExit(f"Required HTML markers missing: {missing}")
+
+          forbidden = [
+              "<<<<<<< ",
+              "=======\n",
+              ">>>>>>> ",
+              "service_role",
+              "BEGIN PRIVATE KEY",
+              "ghp_",
+              "xoxb-",
+          ]
+          found = [item for item in forbidden if item in text]
+          if found:
+              raise SystemExit(f"Unsafe or unresolved markers found: {found}")
+
+          class StrictEnoughParser(HTMLParser):
+              pass
+
+          StrictEnoughParser().feed(text)
+          print("Static validation passed")
+          PY

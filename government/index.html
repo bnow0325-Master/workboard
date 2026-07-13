@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#12615d" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>BNOW 정부과제 워크보드</title>
+  </head>
+  <body>
+    <main class="workspace-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">BNOW Workspace</p>
+          <h1>정부과제 워크보드</h1>
+        </div>
+        <div class="header-actions">
+          <button class="ghost-button" id="exportButton" type="button">CSV 내보내기</button>
+          <button class="primary-button" id="sampleButton" type="button">구글시트 다시 반영</button>
+        </div>
+      </header>
+
+      <section class="summary-grid" aria-label="정부과제 현황">
+        <article class="metric-panel"><span class="metric-label">전체 과제</span><strong id="totalCount">0</strong></article>
+        <article class="metric-panel"><span class="metric-label">해야 할 과제</span><strong id="pendingCount">0</strong></article>
+        <article class="metric-panel"><span class="metric-label">7일 이내 마감</span><strong id="dueSoonCount">0</strong></article>
+        <article class="metric-panel"><span class="metric-label">합격</span><strong id="passedCount">0</strong></article>
+        <article class="metric-panel metric-panel-wide"><span class="metric-label">합격 지원금 합계</span><strong><span id="passedAmountTotal">0</span><small>만원</small></strong></article>
+      </section>
+
+      <section class="control-band" aria-label="과제 등록과 가져오기">
+        <form class="task-form" id="taskForm">
+          <div class="form-grid">
+            <label class="name-field"><span>과제명</span><input id="taskName" name="taskName" type="text" autocomplete="off" required /></label>
+            <label><span>마감일</span><input id="dueDate" name="dueDate" type="date" /></label>
+            <label><span>제출일</span><input id="submittedDate" name="submittedDate" type="date" /></label>
+            <label>
+              <span>상태</span>
+              <select id="resultStatus" name="resultStatus">
+                <option value="검토중">검토중</option>
+                <option value="준비중">준비중</option>
+                <option value="제출완료">제출완료</option>
+                <option value="합격">합격</option>
+                <option value="불합격">불합격</option>
+                <option value="보류">보류</option>
+              </select>
+            </label>
+            <label><span>지원금(만원)</span><input id="grantAmount" name="grantAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 5000" /></label>
+            <label class="notice-field"><span>공고/링크</span><input id="noticeUrl" name="noticeUrl" type="url" autocomplete="off" placeholder="https://..." /></label>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" id="saveTaskButton" type="submit">과제 추가</button>
+            <button class="ghost-button" id="resetFormButton" type="button">입력 초기화</button>
+          </div>
+        </form>
+
+        <div class="paste-panel">
+          <div class="panel-title-row">
+            <h2>구글시트 가져오기</h2>
+            <button class="ghost-button" id="importPasteButton" type="button">붙여넣기 반영</button>
+          </div>
+          <div class="sheet-import-grid">
+            <label>
+              <span>구글 스프레드시트 주소</span>
+              <input id="sheetUrl" type="url" value="https://docs.google.com/spreadsheets/d/1torWGNBN1vnWCFMfptJ2K4S8-Rx1OsAC1TDDchiYA_A/edit?usp=sharing" />
+            </label>
+            <label><span>시트명</span><input id="sheetName" type="text" value="2025" /></label>
+            <button class="primary-button" id="importSheetButton" type="button">저장된 시트 데이터 반영</button>
+          </div>
+          <textarea id="sheetPaste" spellcheck="false" placeholder="표를 복사해 붙여넣으면 과제명/마감일/제출일/상태/지원금/링크 형식으로 추가합니다."></textarea>
+          <p class="helper-text" id="importMessage">구글시트에서 가져온 2025 정부사업 데이터가 자동으로 반영됩니다.</p>
+        </div>
+      </section>
+
+      <section class="board-toolbar" aria-label="목록 도구">
+        <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="과제명, 상태, 링크 검색" /></div>
+        <select id="statusFilter" aria-label="상태 필터">
+          <option value="active" selected>해야 할 과제</option>
+          <option value="all">전체 과제</option>
+          <option value="준비중">준비중</option>
+          <option value="검토중">검토중</option>
+          <option value="제출완료">제출완료</option>
+          <option value="합격">합격</option>
+          <option value="불합격">불합격</option>
+          <option value="보류">보류</option>
+        </select>
+      </section>
+
+      <section class="board-section" aria-label="정부과제 리스트">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>순번</th><th>과제명</th><th>마감일</th><th>제출일</th><th>상태</th><th>지원금</th><th>공고/메모</th><th>관리</th></tr>
+            </thead>
+            <tbody id="taskTableBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState"><strong>등록된 정부과제가 없습니다.</strong><span>구글시트 데이터를 반영하거나 직접 과제를 추가하세요.</span></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
+

@@ -1,106 +1,99 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ko">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#12615d" />
-    <link rel="manifest" href="manifest.json" />
-    <link rel="stylesheet" href="styles.css" />
-    <title>BNOW 정부과제 워크보드</title>
-  </head>
-  <body>
-    <main class="workspace-shell">
-      <header class="page-header">
-        <div>
-          <p class="eyebrow">BNOW Workspace</p>
-          <h1>정부과제 워크보드</h1>
-        </div>
-        <div class="header-actions">
-          <button class="ghost-button" id="exportButton" type="button">CSV 내보내기</button>
-          <button class="primary-button" id="sampleButton" type="button">구글시트 다시 반영</button>
-        </div>
-      </header>
-
-      <section class="summary-grid" aria-label="정부과제 현황">
-        <article class="metric-panel"><span class="metric-label">전체 과제</span><strong id="totalCount">0</strong></article>
-        <article class="metric-panel"><span class="metric-label">해야 할 과제</span><strong id="pendingCount">0</strong></article>
-        <article class="metric-panel"><span class="metric-label">7일 이내 마감</span><strong id="dueSoonCount">0</strong></article>
-        <article class="metric-panel"><span class="metric-label">합격</span><strong id="passedCount">0</strong></article>
-        <article class="metric-panel metric-panel-wide"><span class="metric-label">합격 지원금 합계</span><strong><span id="passedAmountTotal">0</span><small>만원</small></strong></article>
-      </section>
-
-      <section class="control-band" aria-label="과제 등록과 가져오기">
-        <form class="task-form" id="taskForm">
-          <div class="form-grid">
-            <label class="name-field"><span>과제명</span><input id="taskName" name="taskName" type="text" autocomplete="off" required /></label>
-            <label><span>마감일</span><input id="dueDate" name="dueDate" type="date" /></label>
-            <label><span>제출일</span><input id="submittedDate" name="submittedDate" type="date" /></label>
-            <label>
-              <span>상태</span>
-              <select id="resultStatus" name="resultStatus">
-                <option value="검토중">검토중</option>
-                <option value="준비중">준비중</option>
-                <option value="제출완료">제출완료</option>
-                <option value="합격">합격</option>
-                <option value="불합격">불합격</option>
-                <option value="보류">보류</option>
-              </select>
-            </label>
-            <label><span>지원금(만원)</span><input id="grantAmount" name="grantAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 5000" /></label>
-            <label class="notice-field"><span>공고/링크</span><input id="noticeUrl" name="noticeUrl" type="url" autocomplete="off" placeholder="https://..." /></label>
-          </div>
-          <div class="form-actions">
-            <button class="primary-button" id="saveTaskButton" type="submit">과제 추가</button>
-            <button class="ghost-button" id="resetFormButton" type="button">입력 초기화</button>
-          </div>
-        </form>
-
-        <div class="paste-panel">
-          <div class="panel-title-row">
-            <h2>구글시트 가져오기</h2>
-            <button class="ghost-button" id="importPasteButton" type="button">붙여넣기 반영</button>
-          </div>
-          <div class="sheet-import-grid">
-            <label>
-              <span>구글 스프레드시트 주소</span>
-              <input id="sheetUrl" type="url" value="https://docs.google.com/spreadsheets/d/1torWGNBN1vnWCFMfptJ2K4S8-Rx1OsAC1TDDchiYA_A/edit?usp=sharing" />
-            </label>
-            <label><span>시트명</span><input id="sheetName" type="text" value="2025" /></label>
-            <button class="primary-button" id="importSheetButton" type="button">저장된 시트 데이터 반영</button>
-          </div>
-          <textarea id="sheetPaste" spellcheck="false" placeholder="표를 복사해 붙여넣으면 과제명/마감일/제출일/상태/지원금/링크 형식으로 추가합니다."></textarea>
-          <p class="helper-text" id="importMessage">구글시트에서 가져온 2025 정부사업 데이터가 자동으로 반영됩니다.</p>
-        </div>
-      </section>
-
-      <section class="board-toolbar" aria-label="목록 도구">
-        <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="과제명, 상태, 링크 검색" /></div>
-        <select id="statusFilter" aria-label="상태 필터">
-          <option value="active" selected>해야 할 과제</option>
-          <option value="all">전체 과제</option>
-          <option value="준비중">준비중</option>
-          <option value="검토중">검토중</option>
-          <option value="제출완료">제출완료</option>
-          <option value="합격">합격</option>
-          <option value="불합격">불합격</option>
-          <option value="보류">보류</option>
-        </select>
-      </section>
-
-      <section class="board-section" aria-label="정부과제 리스트">
-        <div class="table-wrap">
-          <table>
-            <thead>
-              <tr><th>순번</th><th>과제명</th><th>마감일</th><th>제출일</th><th>상태</th><th>지원금</th><th>공고/메모</th><th>관리</th></tr>
-            </thead>
-            <tbody id="taskTableBody"></tbody>
-          </table>
-          <div class="empty-state" id="emptyState"><strong>등록된 정부과제가 없습니다.</strong><span>구글시트 데이터를 반영하거나 직접 과제를 추가하세요.</span></div>
-        </div>
-      </section>
-    </main>
-
-    <script src="app.js"></script>
-  </body>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사내 프로젝트 업무보드</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:#172033;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}.login{min-height:100vh;display:grid;place-items:center;padding:24px;background:#eef3f8}.login-card{width:min(430px,100%);background:white;border:1px solid #dbe3ee;border-radius:8px;padding:28px;box-shadow:0 18px 50px rgba(20,30,50,.12)}h1,h2,h3,p{margin-top:0}.login-card h1{font-size:24px;margin-bottom:8px}.login-card p,.muted{color:#66758a;font-size:13px}.field{margin-bottom:14px}.field label{display:block;margin-bottom:6px;font-size:13px;font-weight:700;color:#475569}.field input,.field select,.field textarea{width:100%;border:1px solid #cbd5e1;border-radius:6px;padding:10px;background:white}.field textarea{min-height:110px;resize:vertical}.btn{border:0;border-radius:6px;background:#2563eb;color:white;padding:10px 15px;font-weight:750}.btn:hover{background:#1d4ed8}.btn.gray{background:#475569}.btn.light{background:white;color:#dbeafe;border:1px solid #64748b}.btn.danger{background:#dc2626}.btn.green{background:#16a34a}.btn.green:hover{background:#15803d}.btn.small{padding:6px 9px;font-size:12px}.btn.full{width:100%}.error{color:#dc2626;font-size:13px;min-height:18px;margin-top:8px}.app{display:none}.top{background:#1e293b;color:white;padding:17px 32px;display:flex;justify-content:space-between;align-items:center;gap:14px}.top h1{font-size:22px;margin:0}.user{display:flex;align-items:center;gap:10px;font-size:14px;color:#dbeafe}.bar,.wrap{max-width:1440px;margin:0 auto;padding:0 18px}.bar{margin-top:22px;display:flex;align-items:center;justify-content:space-between;gap:14px}.bar h2{font-size:20px;margin-bottom:4px}.grid{margin-top:22px;display:grid;grid-template-columns:330px minmax(0,1fr);gap:22px;align-items:start}.panel{background:white;border:1px solid #e2e8f0;border-radius:8px;padding:20px;margin-bottom:20px;box-shadow:0 1px 3px rgba(15,23,42,.05)}.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}.panel h2{font-size:18px;margin:0}.filter-select{border:1px solid #cbd5e1;border-radius:6px;background:white;padding:8px 10px;color:#334155;font-size:13px}.tabs{display:flex;gap:6px}.tab{border:1px solid #cbd5e1;background:white;color:#334155;border-radius:6px;padding:8px 10px;font-size:13px;font-weight:800}.tab.active{background:#1e293b;color:white;border-color:#1e293b}.assignee-filters{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 14px}.assignee-filter{border:1px solid #cbd5e1;border-radius:6px;background:#fff;color:#334155;padding:7px 10px;font-size:12px;font-weight:800}.assignee-filter.active{background:#e0f2fe;border-color:#38bdf8;color:#075985}.table-scroll{overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #e5ebf2;padding:12px 13px;text-align:left;font-size:14px;vertical-align:middle}th{background:#f8fafc;color:#64748b;font-weight:800}.sort-head{border:0;background:transparent;color:inherit;font-weight:850;padding:0;display:flex;align-items:center;gap:5px}.sort-head.active{color:#1d4ed8}.sort-icon{font-size:11px;color:#94a3b8}tbody tr:hover{background:#f8fafc}.active-row{background:#eff6ff!important}.title-cell{min-width:250px;display:flex;align-items:center;gap:8px}.row-actions{display:flex;gap:6px;white-space:nowrap;align-items:center}.badge{display:inline-block;border-radius:4px;padding:4px 8px;font-size:12px;font-weight:800;white-space:nowrap}.wait{background:#fef3c7;color:#a16207}.prog{background:#dbeafe;color:#1d4ed8}.done{background:#dcfce7;color:#15803d}.arch{background:#ede9fe;color:#6d28d9}.alert{background:#fee2e2;color:#b91c1c}.soft{background:#e0f2fe;color:#0369a1}.confirm{background:#fef3c7;color:#92400e}.notice-list,.team-list{display:grid;gap:9px}.notice{width:100%;display:flex;justify-content:space-between;gap:10px;text-align:left;border:1px solid #e2e8f0;border-radius:6px;background:#f8fafc;padding:10px 12px;color:#334155}.notice.red{background:#fff1f2;border-color:#fda4af}.notice.orange{background:#fff7ed;border-color:#fdba74}.team-card{border:1px solid #e2e8f0;border-radius:7px;background:#f8fafc;padding:12px}.team-card-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:9px}.team-card-name{font-weight:850;color:#172033}.team-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:9px}.team-stat{background:white;border:1px solid #edf2f7;border-radius:6px;padding:7px 6px;text-align:center}.team-stat b{display:block;font-size:15px;color:#0f172a}.team-stat span{font-size:11px;color:#64748b}.team-task{width:100%;border:0;background:white;border-radius:6px;text-align:left;padding:8px 9px;margin-top:6px;color:#334155}.team-task b{float:right;color:#64748b;font-size:12px}.detail-meta{display:flex;flex-wrap:wrap;gap:10px 18px;background:#f8fafc;border-radius:6px;padding:10px;color:#475569;font-size:13px;margin:12px 0}.content{white-space:pre-line;line-height:1.6;background:#fafafa;border-left:4px solid #cbd5e1;padding:14px;margin-bottom:22px}.comment{background:#f8fafc;border:1px solid #edf2f7;border-radius:6px;padding:12px 14px;margin-bottom:10px}.comment.need-confirm{background:#fff7ed;border-color:#fdba74}.comment.confirmed{background:#f0fdf4;border-color:#86efac}.comment.unread{background:#fff7f7;border-color:#fca5a5}.comment-meta{display:flex;justify-content:space-between;gap:10px;color:#64748b;font-size:12px;margin-bottom:6px}.comment-body{white-space:pre-line;line-height:1.5}.comment-actions{margin-top:10px;display:flex;gap:8px}.comment-form{display:grid;grid-template-columns:190px minmax(0,1fr) auto auto;gap:10px;margin-top:12px}.comment-form input,.comment-form select{border:1px solid #cbd5e1;border-radius:6px;padding:10px;background:white}.confirm-request-label{display:block;font-size:11px;font-weight:650;line-height:1.2;margin-top:2px}.detail-title-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.detail-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.modal-back{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:20;align-items:center;justify-content:center;padding:20px}.modal-back.open{display:flex}.modal{background:white;border-radius:8px;border:1px solid #dbe3ee;width:min(560px,100%);max-height:calc(100vh - 40px);overflow:auto;padding:22px;box-shadow:0 25px 70px rgba(15,23,42,.28)}.modal-head{display:flex;justify-content:space-between;gap:12px;margin-bottom:16px}.modal-head h2{font-size:20px;margin-bottom:4px}.actions{display:flex;justify-content:flex-end;gap:10px}.government-board{display:none;position:fixed;inset:0;background:#f6f8f5;z-index:40}.government-board.open{display:flex;flex-direction:column}.government-board-head{height:58px;background:#1e293b;color:white;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 18px}.government-board-head h2{font-size:18px;margin:0}.government-board iframe{border:0;width:100%;height:calc(100vh - 58px);background:white}.hidden{display:none!important}@media(max-width:920px){.top{padding:16px 18px;align-items:flex-start;flex-direction:column}.bar,.panel-head{align-items:stretch;flex-direction:column}.grid{grid-template-columns:1fr}.comment-form{grid-template-columns:1fr}.btn{width:100%}.row-actions,.detail-actions,.tabs{display:grid;grid-template-columns:1fr 1fr;width:100%}.assignee-filters{display:grid;grid-template-columns:1fr 1fr}.filter-select{width:100%}th,td{padding:10px}.title-cell{min-width:210px}}
+</style>
+</head>
+<body>
+<section id="loginScreen" class="login"><div class="login-card"><h1>업무보드 로그인</h1><p>팀원 계정으로 로그인하면 프로젝트, 댓글, 확인요청 상태가 함께 공유됩니다.</p><form id="loginForm"><div class="field"><label for="loginEmail">로그인 아이디</label><input id="loginEmail" type="email" autocomplete="username" required placeholder="name@bnow.co.kr"></div><div class="field"><label for="loginPassword">비밀번호</label><input id="loginPassword" type="password" autocomplete="current-password" required></div><button class="btn full" type="submit">로그인</button><div id="loginError" class="error"></div></form></div></section>
+<main id="app" class="app"><header class="top"><h1>사내 프로젝트 진행 현황 통합 대시보드</h1><div class="user"><span id="currentUserLabel"></span><button type="button" class="btn light" onclick="openGovernmentBoard()">정부과제</button><button type="button" class="btn light" onclick="logout()">로그아웃</button></div></header><div class="bar"><div><h2 id="dashboardTitle">업무 현황</h2><p id="dashboardSubtitle" class="muted">팀원별 현재 업무와 프로젝트 상세 현황을 확인합니다.</p></div><button type="button" class="btn" onclick="openProjectModal()">프로젝트 등록</button></div><div class="wrap grid"><aside><section class="panel"><div class="panel-head"><h2>내 알림</h2></div><div id="noticeList" class="notice-list"></div></section><section class="panel"><div class="panel-head"><h2>팀원별 현재 업무</h2><span class="muted">요약</span></div><div id="teamBody" class="team-list"></div></section></aside><section><section class="panel"><div class="panel-head"><h2 id="primaryTitle">진행중목록</h2><div class="row-actions"><button id="assigneeToggle" class="tab" type="button" onclick="toggleAssigneeFilters()">담당자별 목록</button><select id="workFilter" class="filter-select" onchange="setWorkFilter(this.value)"><option value="mine">내 업무만 보기</option><option value="all">전체보기</option></select><div class="tabs"><button id="activeTab" class="tab active" type="button" onclick="setListMode('active')">진행중목록</button><button id="completedTab" class="tab" type="button" onclick="setListMode('completed')">완료목록</button><button id="archivedTab" class="tab" type="button" onclick="setListMode('archived')">보관목록</button></div><span id="primaryCount" class="muted"></span></div></div><div id="assigneeFilters" class="assignee-filters hidden"></div><div class="table-scroll"><table><thead><tr id="primaryHead"></tr></thead><tbody id="primaryBody"></tbody></table></div></section><section id="detailPanel" class="panel hidden"><div class="panel-head"><div class="detail-title-row"><h2 id="detailTitle"></h2><select id="detailStatus" onchange="updateStatus(this.value)"><option>대기 중</option><option>진행 중</option><option>완료</option><option>보관</option></select></div><div class="detail-actions"><button id="editDetailBtn" type="button" class="btn small gray" onclick="editActiveProject()">수정</button><button id="archiveDetailBtn" type="button" class="btn small danger" onclick="archiveActiveProject()">보관</button><button id="deleteDetailBtn" type="button" class="btn small danger" onclick="deleteActiveProject()">삭제</button></div></div><div class="detail-meta"><span><b>담당자:</b> <span id="detailAssignee"></span></span><span><b>만기일:</b> <span id="detailDue"></span></span><span><b>확인필요:</b> <span id="detailConfirm"></span></span></div><div id="detailContent" class="content"></div><h3>피드백 및 확인요청</h3><div id="commentList"></div><form id="commentForm" class="comment-form"><select id="commentRecipient" required></select><input id="commentInput" required placeholder="피드백 또는 확인요청 내용을 입력하세요."><button type="submit" class="btn gray">댓글등록</button><button type="button" class="btn green" onclick="submitComment(true)">확인요망<span class="confirm-request-label">(승인요청)</span></button></form></section></section></div></main>
+<div id="governmentBoard" class="government-board"><div class="government-board-head"><h2>정부과제 워크보드</h2><button type="button" class="btn light" onclick="closeGovernmentBoard()">업무보드로 돌아가기</button></div><iframe title="정부과제 워크보드" src="government/"></iframe></div>
+<div id="projectModal" class="modal-back" onclick="if(event.target.id==='projectModal')closeProjectModal()"><div class="modal" role="dialog" aria-modal="true"><div class="modal-head"><div><h2 id="projectModalTitle">새 프로젝트 등록</h2><p class="muted">담당자, 만기일, 진행 상태를 지정합니다.</p></div><button type="button" class="btn gray" onclick="closeProjectModal()">닫기</button></div><form id="projectForm"><div class="field"><label for="pTitle">프로젝트명</label><input id="pTitle" required></div><div class="field"><label for="pAssignee">담당자</label><select id="pAssignee" required></select></div><div class="field"><label for="pDue">만기일</label><input id="pDue" type="date" required></div><div class="field"><label for="pStatus">진행 상태</label><select id="pStatus"><option>대기 중</option><option selected>진행 중</option><option>완료</option><option>보관</option></select></div><div class="field"><label for="pContent">프로젝트 내용</label><textarea id="pContent" required></textarea></div><div class="actions"><button type="button" class="btn gray" onclick="closeProjectModal()">취소</button><button id="projectSubmitBtn" type="submit" class="btn">등록</button></div></form></div></div>
+<script>
+const SUPABASE_URL="https://lwwfzwdjaedrfckyduno.supabase.co";
+const SUPABASE_ANON_KEY="sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
+const db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+const ADMIN_EMAIL="elon.choo@bnow.co.kr";
+let currentUser=null,members=[],projects=[],comments=[],reads=[],activeProjectId=null,editingProjectId=null,workFilter="mine",listMode="active",assigneeFilter="all",showAssigneeFilters=false,projectSort={key:"status",dir:"asc"};
+const TEAM_ORDER=["최창혁","손근혁","채민강","이세언","박수민","추동현"];
+const $=id=>document.getElementById(id);
+const h=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
+const ok=r=>{if(r.error)throw r.error;return r.data};
+const teamRank=m=>{const i=TEAM_ORDER.indexOf(m.full_name);return i===-1?TEAM_ORDER.length:i};
+const member=email=>members.find(m=>m.email===email);
+const memberName=email=>member(email)?.full_name||email;
+const projectById=id=>projects.find(p=>p.id===id);
+const assigneeName=p=>member(p.assignee_email)?.full_name||p.assignee_email;
+const canEdit=p=>currentUser&&(currentUser.role==="admin"||p.assignee_email===currentUser.email);
+const canDelete=()=>currentUser&&currentUser.role==="admin";
+const canDeleteProject=()=>currentUser&&currentUser.email===ADMIN_EMAIL;
+const canEditComment=c=>currentUser&&c.writer_email===currentUser.email;
+const canDeleteComment=()=>currentUser&&currentUser.email===ADMIN_EMAIL;
+const projectComments=id=>comments.filter(c=>c.project_id===id);
+const isRead=(commentId,email)=>reads.some(r=>r.comment_id===commentId&&r.reader_email===email);
+function openGovernmentBoard(){document.getElementById("governmentBoard").classList.add("open")}function closeGovernmentBoard(){document.getElementById("governmentBoard").classList.remove("open")}function commentParts(body){const lines=String(body||"").split("\n"),head=lines[0]||"";return /^\[(확인요망|받는 사람|확인완료)[:\]]/.test(head)?{prefix:head,text:lines.slice(1).join("\n")}:{prefix:"",text:String(body||"")}}
+function normalRecipient(c){const m=String(c.body||"").match(/^\[받는 사람: ([^\]]+)\]/);return m?m[1].trim():"전체"}
+function confirmRequest(c){const m=String(c.body||"").match(/^\[확인요망:([^:\]]+):([^\]]+)\]/);return m?{id:m[1].trim(),target:m[2].trim()}:null}
+function confirmDone(c){const m=String(c.body||"").match(/^\[확인완료:([^\]]+)\]/);return m?m[1].trim():null}
+function commentTargets(c,email){if(c.writer_email===email)return false;const req=confirmRequest(c),target=req?req.target:normalRecipient(c);return target==="전체"||target===memberName(email)||target===email}
+function confirmedIds(){return new Set(comments.map(confirmDone).filter(Boolean))}
+function pendingConfirmRequests(project,email=null){const done=confirmedIds();return projectComments(project.id).filter(c=>{const req=confirmRequest(c);if(!req||done.has(req.id))return false;return email?commentTargets(c,email):true})}
+const unreadFor=(project,email)=>projectComments(project.id).filter(c=>commentTargets(c,email)&&!isRead(c.id,email)).length;
+const myPending=project=>currentUser?pendingConfirmRequests(project,currentUser.email).length:0;
+function daysLeft(project){const t=new Date();t.setHours(0,0,0,0);return Math.ceil((new Date(project.due_date+"T00:00:00")-t)/86400000)}
+function dateTime(v){return new Date(v).toLocaleString("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})}
+function badgeStatus(s){return s==="진행 중"?'<span class="badge prog">진행 중</span>':s==="대기 중"?'<span class="badge wait">대기 중</span>':s==="보관"?'<span class="badge arch">보관</span>':'<span class="badge done">완료</span>'}
+function confirmBadge(project){const mine=myPending(project),all=pendingConfirmRequests(project).length;if(mine>0)return `<span class="badge alert">내 확인필요 ${mine}</span>`;if(all>0)return `<span class="badge confirm">담당자 확인필요 ${all}</span>`;return '<span class="badge soft">확인완료</span>'}
+function sortValue(p,key){const order={"진행 중":0,"대기 중":1,"완료":2,"보관":3};if(key==="title")return p.title||"";if(key==="assignee")return assigneeName(p);if(key==="due")return p.due_date||"";if(key==="confirm")return pendingConfirmRequests(p).length;return order[p.status]??9}
+function compareProjects(a,b,key){const av=sortValue(a,key),bv=sortValue(b,key);if(typeof av==="number"&&typeof bv==="number")return av-bv;return String(av).localeCompare(String(bv),"ko",{numeric:true})}
+function sortProjects(items){return[...items].sort((a,b)=>{const n=compareProjects(a,b,projectSort.key);if(n!==0)return projectSort.dir==="asc"?n:-n;return new Date(a.due_date)-new Date(b.due_date)||String(a.title).localeCompare(String(b.title),"ko")})}
+function sortIcon(key){return projectSort.key===key?(projectSort.dir==="asc"?"▲":"▼"):"↕"}
+function setProjectSort(key){if(projectSort.key===key)projectSort.dir=projectSort.dir==="asc"?"desc":"asc";else projectSort={key,dir:"asc"};renderTables()}
+function renderTableHead(){$("primaryHead").innerHTML=[["title","프로젝트명"],["assignee","담당자"],["due","만기일"],["status","상태"],["confirm","확인"]].map(([key,label])=>`<th><button type="button" class="sort-head ${projectSort.key===key?"active":""}" onclick="setProjectSort('${key}')">${label}<span class="sort-icon">${sortIcon(key)}</span></button></th>`).join("")+"<th>작업</th>"}
+function goFeedback(){setTimeout(()=>{$("detailPanel")?.scrollIntoView({behavior:"smooth",block:"start"});$("commentInput")?.focus()},120)}
+function setWorkFilter(value){workFilter=value;if(value==="mine")assigneeFilter="all";renderTables()}
+function setListMode(value){listMode=value;renderTables()}
+function toggleAssigneeFilters(){showAssigneeFilters=!showAssigneeFilters;renderTables()}
+function setAssigneeFilter(email){assigneeFilter=email;if(email!=="all")workFilter="all";renderTables()}
+async function loadMembers(){members=ok(await db.from("app_members").select("email,full_name,role,is_active").eq("is_active",true).order("full_name"))}
+async function loadData(){await loadMembers();projects=ok(await db.from("projects").select("*").order("due_date",{ascending:true}));comments=ok(await db.from("project_comments").select("*").order("created_at",{ascending:true}));reads=ok(await db.from("comment_reads").select("*"));if(activeProjectId&&!projectById(activeProjectId))activeProjectId=null;if(!activeProjectId&&projects.length)activeProjectId=projects.find(p=>!["완료","보관"].includes(p.status))?.id||projects[0].id}
+function fillAssignees(){$("pAssignee").innerHTML=members.map(m=>`<option value="${h(m.email)}">${h(m.full_name)} (${h(m.email)})</option>`).join("")}
+function fillCommentRecipients(){const selectedProject=projectById(activeProjectId);const options=members.filter(m=>m.email!==currentUser.email).map(m=>`<option value="${h(m.full_name)}">${h(m.full_name)}</option>`);$("commentRecipient").innerHTML=options.join("")||'<option value="전체">전체</option>';if(selectedProject&&selectedProject.assignee_email!==currentUser.email){$("commentRecipient").value=assigneeName(selectedProject)}}
+async function refresh(){await loadData();fillAssignees();render()}
+function renderNotices(){const out=[];projects.forEach(p=>{const pending=myPending(p);if(pending>0)out.push(`<button class="notice red" onclick="selectProject('${p.id}',true)"><span>${h(p.title)}</span><b>확인필요 ${pending}</b></button>`);const d=daysLeft(p);const mine=currentUser.role==="admin"||p.assignee_email===currentUser.email;if(mine&&!["완료","보관"].includes(p.status)&&[1,2,3].includes(d))out.push(`<button class="notice orange" onclick="selectProject('${p.id}')"><span>${h(p.title)}</span><b>D-${d}</b></button>`)});$("noticeList").innerHTML=out.length?out.join(""):'<div class="muted">현재 확인할 알림이 없습니다.</div>'}
+function renderTeam(){const rows=[...members].sort((a,b)=>teamRank(a)-teamRank(b)||a.full_name.localeCompare(b.full_name,"ko")).map(m=>{const assigned=projects.filter(p=>p.assignee_email===m.email),prog=assigned.filter(p=>p.status==="진행 중"),wait=assigned.filter(p=>p.status==="대기 중"),done=assigned.filter(p=>p.status==="완료"),due=assigned.filter(p=>!["완료","보관"].includes(p.status)&&[1,2,3].includes(daysLeft(p))),need=projects.reduce((n,p)=>n+pendingConfirmRequests(p,m.email).length,0);const tasks=prog.length?prog.slice(0,3).map(p=>`<button class="team-task" onclick="selectProject('${p.id}')"><span>${h(p.title)}</span><b>${h(p.due_date)}</b></button>`).join(""):'<div class="muted">진행 중 업무 없음</div>';const more=prog.length>3?`<div class="muted">외 ${prog.length-3}건 더 있음</div>`:"";return`<div class="team-card"><div class="team-card-head"><span class="team-card-name">${h(m.full_name)}</span><span class="badge ${need?'alert':'soft'}">확인 ${need}</span></div><div class="team-stats"><div class="team-stat"><b>${prog.length}</b><span>진행</span></div><div class="team-stat"><b>${wait.length}</b><span>대기</span></div><div class="team-stat"><b>${done.length}</b><span>완료</span></div></div>${due.length?`<div class="badge alert">마감임박 ${due.length}</div>`:""}${tasks}${more}</div>`});$("teamBody").innerHTML=rows.join("")}
+function actionButtons(p){const edit=canEdit(p)?`<button type="button" class="btn small gray" onclick="event.stopPropagation();openProjectModal('${p.id}')">수정</button>`:"";const archive=canDelete()&&p.status!=="보관"?`<button type="button" class="btn small danger" onclick="event.stopPropagation();archiveProject('${p.id}')">보관</button>`:"";const del=canDeleteProject()?`<button type="button" class="btn small danger" onclick="event.stopPropagation();deleteProject('${p.id}')">삭제</button>`:"";return`<div class="row-actions">${edit}${archive}${del}</div>`}
+function renderAssigneeFilters(){const selected=assigneeFilter==="all"?"전체":memberName(assigneeFilter);$("assigneeToggle").classList.toggle("active",showAssigneeFilters);$("assigneeFilters").classList.toggle("hidden",!showAssigneeFilters);$("assigneeFilters").innerHTML=`<button type="button" class="assignee-filter ${assigneeFilter==="all"?"active":""}" onclick="setAssigneeFilter('all')">전체</button>`+[...members].sort((a,b)=>teamRank(a)-teamRank(b)||a.full_name.localeCompare(b.full_name,"ko")).map(m=>`<button type="button" class="assignee-filter ${assigneeFilter===m.email?"active":""}" onclick="setAssigneeFilter('${h(m.email)}')">${h(m.full_name)}</button>`).join("");return selected}
+function renderRows(items,bodyId){if(!items.length){$(bodyId).innerHTML='<tr><td colspan="6" class="muted">표시할 프로젝트가 없습니다.</td></tr>';return}$(bodyId).innerHTML=sortProjects(items).map(p=>{const d=daysLeft(p),due=!["완료","보관"].includes(p.status)&&[1,2,3].includes(d)?`<span class="badge alert">D-${d}</span>`:"";return`<tr class="${p.id===activeProjectId?'active-row':''}" onclick="selectProject('${p.id}',${myPending(p)>0})"><td><div class="title-cell"><b>${h(p.title)}</b>${due}</div></td><td>${h(assigneeName(p))}</td><td>${h(p.due_date)}</td><td>${badgeStatus(p.status)}</td><td>${confirmBadge(p)}</td><td>${actionButtons(p)}</td></tr>`}).join("")}
+function renderTables(){const showAll=workFilter==="all",base=showAll?projects:projects.filter(p=>p.assignee_email===currentUser.email),scope=assigneeFilter==="all"?base:base.filter(p=>p.assignee_email===assigneeFilter),items=scope.filter(p=>listMode==="archived"?p.status==="보관":listMode==="completed"?p.status==="완료":!["완료","보관"].includes(p.status)),assigneeLabel=renderAssigneeFilters();$("workFilter").value=workFilter;$("activeTab").classList.toggle("active",listMode==="active");$("completedTab").classList.toggle("active",listMode==="completed");$("archivedTab").classList.toggle("active",listMode==="archived");$("dashboardTitle").innerText=assigneeFilter!=="all"?`${assigneeLabel} 업무 현황`:showAll?"전체 업무 현황":"내 업무 현황";$("dashboardSubtitle").innerText=assigneeFilter!=="all"?`${assigneeLabel} 담당 업무를 진행중목록, 완료목록, 보관목록으로 확인합니다.`:showAll?"전체 업무를 진행중목록, 완료목록, 보관목록으로 확인합니다.":"내 담당 업무를 진행중목록, 완료목록, 보관목록으로 확인합니다.";$("primaryTitle").innerText=listMode==="archived"?"보관목록":listMode==="completed"?"완료목록":"진행중목록";$("primaryCount").innerText=`${items.length}건`;renderTableHead();renderRows(items,"primaryBody")}
+function renderDetail(){const p=projectById(activeProjectId);if(!p){$("detailPanel").classList.add("hidden");return}$("detailPanel").classList.remove("hidden");$("detailTitle").innerText=p.title;$("detailAssignee").innerText=`${assigneeName(p)} (${p.assignee_email})`;$("detailDue").innerText=p.due_date;$("detailConfirm").innerText=`${pendingConfirmRequests(p).length}건`;$("detailContent").innerText=p.content||"";$("detailStatus").value=p.status;$("detailStatus").disabled=!canEdit(p);$("editDetailBtn").classList.toggle("hidden",!canEdit(p));$("archiveDetailBtn").classList.toggle("hidden",!canDelete()||p.status==="보관");$("deleteDetailBtn").classList.toggle("hidden",!canDeleteProject());fillCommentRecipients();const done=confirmedIds(),pcs=projectComments(p.id);$("commentList").innerHTML=pcs.length?pcs.map(c=>{const req=confirmRequest(c),doneId=confirmDone(c),isReq=!!req,isDone=!!doneId,needsMe=isReq&&commentTargets(c,currentUser.email)&&!done.has(req.id),w=member(c.writer_email),edited=c.updated_at&&new Date(c.updated_at)-new Date(c.created_at)>1000;let cls=isReq?(done.has(req.id)?"confirmed":"need-confirm"):"";if(commentTargets(c,currentUser.email)&&!isRead(c.id,currentUser.email))cls+=" unread";const confirmButton=needsMe?`<button type="button" class="btn small green" onclick="confirmRequestDone('${req.id}')">확인완료</button>`:"";const editButton=canEditComment(c)?`<button type="button" class="btn small gray" onclick="editComment('${c.id}')">수정</button>`:"";const deleteButton=canDeleteComment()?`<button type="button" class="btn small danger" onclick="deleteComment('${c.id}')">삭제</button>`:"";const actions=confirmButton||editButton||deleteButton?`<div class="comment-actions">${confirmButton}${editButton}${deleteButton}</div>`:"";return`<div class="comment ${cls}"><div class="comment-meta"><b>${h(w?.full_name||c.writer_email)} (${h(c.writer_email)})</b><span>${dateTime(c.created_at)}${edited?` · 수정 ${dateTime(c.updated_at)}`:""}${isReq&&!done.has(req.id)?' · 확인요망':''}${isReq&&done.has(req.id)?' · 확인완료':''}${isDone?' · 확인완료 기록':''}</span></div><div class="comment-body">${h(c.body)}</div>${actions}</div>`}).join(""):'<div class="muted">아직 등록된 피드백이 없습니다.</div>'}
+function render(){$("currentUserLabel").innerText=`${currentUser.full_name} ${currentUser.role==="admin"?"관리자":"팀원"}`;renderNotices();renderTeam();renderTables();renderDetail()}
+async function selectProject(id,focusFeedback=false){activeProjectId=id;try{await db.rpc("mark_project_comments_read",{target_project_id:id});await refresh();if(focusFeedback)goFeedback()}catch(e){console.error(e);render();if(focusFeedback)goFeedback()}}
+async function updateStatus(status){const p=projectById(activeProjectId);if(!p||!canEdit(p))return;try{ok(await db.from("projects").update({status}).eq("id",activeProjectId));await refresh()}catch(e){alert("상태 변경 실패: "+e.message)}}
+function resetProjectForm(){editingProjectId=null;$("projectForm").reset();$("pStatus").value="진행 중";$("projectModalTitle").innerText="새 프로젝트 등록";$("projectSubmitBtn").innerText="등록"}
+function openProjectModal(id=null){fillAssignees();resetProjectForm();if(id){const p=projectById(id);if(!p||!canEdit(p))return;editingProjectId=id;$("projectModalTitle").innerText="프로젝트 수정";$("projectSubmitBtn").innerText="저장";$("pTitle").value=p.title;$("pAssignee").value=p.assignee_email;$("pDue").value=p.due_date;$("pStatus").value=p.status;$("pContent").value=p.content||""}$("projectModal").classList.add("open");setTimeout(()=>$("pTitle").focus(),0)}
+function closeProjectModal(){$("projectModal").classList.remove("open");resetProjectForm()}
+function editActiveProject(){if(activeProjectId)openProjectModal(activeProjectId)}
+async function archiveProject(id){const p=projectById(id);if(!p||!canDelete()||p.status==="보관")return;if(!confirm(`'${p.title}' 업무를 보관목록으로 이동할까요? 데이터와 댓글은 삭제되지 않습니다.`))return;try{ok(await db.from("projects").update({status:"보관"}).eq("id",id));await refresh()}catch(e){alert("보관 처리 실패: "+e.message)}}
+function archiveActiveProject(){if(activeProjectId)archiveProject(activeProjectId)}
+async function deleteProject(id){const p=projectById(id);if(!p||!canDeleteProject())return;if(!confirm(`'${p.title}' 업무를 정말 삭제할까요? 삭제 로그에는 남지만 목록과 댓글에서는 제거됩니다.`))return;try{ok(await db.from("projects").delete().eq("id",id));if(activeProjectId===id)activeProjectId=null;await refresh()}catch(e){alert("삭제 실패: "+e.message)}}
+function deleteActiveProject(){if(activeProjectId)deleteProject(activeProjectId)}
+async function logout(){await db.auth.signOut();currentUser=null;activeProjectId=null;$("loginScreen").classList.remove("hidden");$("app").style.display="none"}
+async function loadSignedInUser(){const auth=ok(await db.auth.getUser()).user,email=auth.email.toLowerCase();await loadMembers();const m=member(email);if(!m){await db.auth.signOut();$("loginError").innerText="등록된 팀원 계정이 아닙니다.";return}currentUser=m;workFilter=m.role==="admin"?"all":"mine";$("loginScreen").classList.add("hidden");$("app").style.display="block";await refresh()}
+async function submitComment(confirmNeeded=false){const input=$("commentInput"),recipient=$("commentRecipient").value;if(!activeProjectId||!input.value.trim())return;try{const id=crypto.randomUUID(),prefix=confirmNeeded?`[확인요망:${id}:${recipient}]`:`[받는 사람: ${recipient}]`,body=`${prefix}\n${input.value.trim()}`;const row=ok(await db.from("project_comments").insert({id,project_id:activeProjectId,writer_email:currentUser.email,body}).select("id").single());await db.from("comment_reads").insert({comment_id:row.id,reader_email:currentUser.email});input.value="";await refresh()}catch(err){alert("댓글 등록 실패: "+err.message)}}
+async function editComment(id){const c=comments.find(x=>x.id===id);if(!c||!canEditComment(c))return;const parts=commentParts(c.body),next=prompt("수정할 댓글 내용을 입력하세요.",parts.text);if(next===null)return;const text=next.trim();if(!text)return;try{const body=parts.prefix?`${parts.prefix}\n${text}`:text;ok(await db.from("project_comments").update({body}).eq("id",id));await refresh()}catch(err){alert("댓글 수정 실패: "+err.message)}}
+async function deleteComment(id){const c=comments.find(x=>x.id===id);if(!c||!canDeleteComment())return;if(!confirm("이 댓글을 삭제할까요? 삭제는 추동현 관리자만 가능합니다."))return;try{ok(await db.from("project_comments").delete().eq("id",id));await refresh()}catch(err){alert("댓글 삭제 실패: "+err.message)}}
+async function confirmRequestDone(requestId){if(!activeProjectId)return;try{const id=crypto.randomUUID(),body=`[확인완료:${requestId}]\n${memberName(currentUser.email)} 확인완료`;const row=ok(await db.from("project_comments").insert({id,project_id:activeProjectId,writer_email:currentUser.email,body}).select("id").single());await db.from("comment_reads").insert({comment_id:row.id,reader_email:currentUser.email});await refresh()}catch(err){alert("확인완료 처리 실패: "+err.message)}}
+$("loginForm").addEventListener("submit",async e=>{e.preventDefault();$("loginError").innerText="";const email=$("loginEmail").value.trim().toLowerCase(),password=$("loginPassword").value;const r=await db.auth.signInWithPassword({email,password});if(r.error){$("loginError").innerText=r.error.message;return}await loadSignedInUser()});
+$("projectForm").addEventListener("submit",async e=>{e.preventDefault();try{const payload={title:$("pTitle").value.trim(),assignee_email:$("pAssignee").value,due_date:$("pDue").value,status:$("pStatus").value,content:$("pContent").value.trim()};let row;if(editingProjectId){row=ok(await db.from("projects").update(payload).eq("id",editingProjectId).select("id").single())}else{payload.created_by_email=currentUser.email;row=ok(await db.from("projects").insert(payload).select("id").single())}activeProjectId=row.id;closeProjectModal();await refresh()}catch(err){alert("저장 실패: "+err.message)}});
+$("commentForm").addEventListener("submit",async e=>{e.preventDefault();await submitComment(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeProjectModal()});
+(async()=>{const{data}=await db.auth.getSession();if(data.session)await loadSignedInUser()})();
+</script>
+</body>
 </html>
-

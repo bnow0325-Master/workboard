@@ -1,454 +1,106 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>사내 프로젝트 통합 관리 시스템</title>
-    <style>
-        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
-        body { background-color: #f4f6f9; margin: 0; color: #263241; }
-        button, input, select, textarea { font: inherit; }
-        .login-screen { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #eef2f7; }
-        .login-panel { width: min(420px, 100%); background: #fff; border: 1px solid #d9e2ec; border-radius: 8px; padding: 28px; box-shadow: 0 12px 34px rgba(30, 41, 59, 0.12); }
-        .login-panel h1 { margin: 0 0 6px; font-size: 24px; color: #0f172a; }
-        .login-panel p { margin: 0 0 22px; color: #64748b; font-size: 14px; }
-        .app { display: none; }
-        .header { background-color: #1e293b; color: #fff; padding: 18px 40px; display: flex; justify-content: space-between; align-items: center; gap: 16px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        .header h1 { margin: 0; font-size: 23px; font-weight: 650; }
-        .userbar { display: flex; align-items: center; gap: 10px; font-size: 14px; color: #dbe4f0; }
-        .container { max-width: 1440px; margin: 26px auto; padding: 0 20px; display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; }
-        .card { background: #fff; border-radius: 8px; padding: 22px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
-        .card h2 { margin: 0 0 18px; font-size: 18px; color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px; }
-        .card h3 { margin: 0 0 12px; font-size: 16px; color: #172033; }
-        .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 13px; color: #475569; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px 11px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; background-color: #fff; }
-        .form-group textarea { resize: vertical; min-height: 100px; }
-        .btn { background-color: #2563eb; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 650; width: 100%; transition: background-color 0.2s; }
-        .btn:hover { background-color: #1d4ed8; }
-        .btn-secondary { background: #475569; width: auto; }
-        .btn-secondary:hover { background: #334155; }
-        .btn-ghost { background: transparent; color: #dbe4f0; border: 1px solid #64748b; width: auto; padding: 7px 11px; }
-        .btn-ghost:hover { background: rgba(255,255,255,0.08); }
-        .error { color: #dc2626; min-height: 18px; font-size: 13px; margin-top: 8px; }
-        table { width: 100%; border-collapse: collapse; text-align: left; }
-        th, td { padding: 14px 15px; border-bottom: 1px solid #e2e8f0; font-size: 14px; vertical-align: middle; }
-        th { background-color: #f8fafc; color: #64748b; font-weight: 700; }
-        tr:hover { background-color: #f8fafc; cursor: pointer; }
-        tr.active-row { background-color: #f1f5f9; }
-        .project-title-cell { display: flex; align-items: center; gap: 8px; min-width: 260px; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 700; white-space: nowrap; }
-        .badge-waiting { background-color: #fef3c7; color: #b45309; }
-        .badge-progress { background-color: #dbeafe; color: #1d4ed8; }
-        .badge-complete { background-color: #dcfce7; color: #15803d; }
-        .badge-alert { background-color: #fee2e2; color: #b91c1c; }
-        .badge-soft { background-color: #e0f2fe; color: #0369a1; }
-        .detail-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; margin-bottom: 15px; }
-        .detail-meta { font-size: 13px; color: #64748b; margin-bottom: 15px; background: #f8fafc; padding: 10px; border-radius: 6px; display: flex; flex-wrap: wrap; gap: 12px 20px; }
-        .detail-content { font-size: 15px; line-height: 1.6; color: #334155; white-space: pre-line; margin-bottom: 25px; padding: 15px; background: #fafafa; border-left: 4px solid #cbd5e1; }
-        .feedback-section { margin-top: 28px; border-top: 1px solid #e2e8f0; padding-top: 20px; }
-        .feedback-item { background: #f8fafc; padding: 12px 16px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #f1f5f9; }
-        .feedback-item.unread { border-color: #fca5a5; background: #fff7f7; }
-        .feedback-item .meta { font-size: 12px; color: #64748b; margin-bottom: 6px; display: flex; justify-content: space-between; gap: 12px; }
-        .feedback-item .comment { font-size: 14px; color: #334155; line-height: 1.5; }
-        .feedback-form { margin-top: 15px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; }
-        .feedback-form input { padding: 9px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
-        .status-select-sm { padding: 6px 9px; border-radius: 4px; border: 1px solid #cbd5e1; font-size: 13px; }
-        .notice-list { display: grid; gap: 9px; }
-        .notice { border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 12px; font-size: 13px; background: #f8fafc; color: #334155; display: flex; justify-content: space-between; gap: 10px; }
-        .notice.due { border-color: #fdba74; background: #fff7ed; }
-        .notice.unread { border-color: #fca5a5; background: #fef2f2; }
-        .muted { color: #94a3b8; font-size: 13px; padding: 8px 0; }
-        .hidden { display: none !important; }
-        @media (max-width: 920px) {
-            .header { padding: 16px 18px; align-items: flex-start; flex-direction: column; }
-            .container { grid-template-columns: 1fr; padding: 0 14px; margin: 18px auto; }
-            .feedback-form { grid-template-columns: 1fr; }
-            .btn-secondary { width: 100%; }
-            th, td { padding: 11px 10px; }
-        }
-    </style>
-</head>
-<body>
-    <section id="loginScreen" class="login-screen">
-        <div class="login-panel">
-            <h1>업무 대시보드 로그인</h1>
-            <p>담당자 계정으로 들어가면 내 프로젝트, 미확인 댓글, 마감 알림이 따로 표시됩니다.</p>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label for="loginEmail">로그인 아이디</label>
-                    <input type="email" id="loginEmail" autocomplete="username" required placeholder="name@bnow.co.kr">
-                </div>
-                <div class="form-group">
-                    <label for="loginPassword">비밀번호</label>
-                    <input type="password" id="loginPassword" autocomplete="current-password" required>
-                </div>
-                <button type="submit" class="btn">로그인</button>
-                <div id="loginError" class="error"></div>
-            </form>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#12615d" />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>BNOW 정부과제 워크보드</title>
+  </head>
+  <body>
+    <main class="workspace-shell">
+      <header class="page-header">
+        <div>
+          <p class="eyebrow">BNOW Workspace</p>
+          <h1>정부과제 워크보드</h1>
         </div>
-    </section>
-
-    <main id="app" class="app">
-        <div class="header">
-            <h1>사내 프로젝트 진행 현황 통합 대시보드</h1>
-            <div class="userbar">
-                <span id="currentUserLabel"></span>
-                <button type="button" class="btn-ghost" onclick="logout()">로그아웃</button>
-            </div>
+        <div class="header-actions">
+          <button class="ghost-button" id="exportButton" type="button">CSV 내보내기</button>
+          <button class="primary-button" id="sampleButton" type="button">구글시트 다시 반영</button>
         </div>
+      </header>
 
-        <div class="container">
-            <aside>
-                <div class="card">
-                    <h2>새 프로젝트 등록</h2>
-                    <form id="projectForm">
-                        <div class="form-group">
-                            <label for="p_title">프로젝트명</label>
-                            <input type="text" id="p_title" required placeholder="예: 서비스 모듈 구현">
-                        </div>
-                        <div class="form-group">
-                            <label for="p_assignee">담당자</label>
-                            <select id="p_assignee" required></select>
-                        </div>
-                        <div class="form-group">
-                            <label for="p_duedate">만기일</label>
-                            <input type="date" id="p_duedate" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="p_status">진행 상태</label>
-                            <select id="p_status">
-                                <option value="대기 중">대기 중</option>
-                                <option value="진행 중" selected>진행 중</option>
-                                <option value="완료">완료</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="p_content">프로젝트 내용</label>
-                            <textarea id="p_content" required placeholder="상세 추진 계획 및 연동 정의 내용을 입력하세요."></textarea>
-                        </div>
-                        <button type="submit" class="btn">프로젝트 추가</button>
-                    </form>
-                </div>
+      <section class="summary-grid" aria-label="정부과제 현황">
+        <article class="metric-panel"><span class="metric-label">전체 과제</span><strong id="totalCount">0</strong></article>
+        <article class="metric-panel"><span class="metric-label">해야 할 과제</span><strong id="pendingCount">0</strong></article>
+        <article class="metric-panel"><span class="metric-label">7일 이내 마감</span><strong id="dueSoonCount">0</strong></article>
+        <article class="metric-panel"><span class="metric-label">합격</span><strong id="passedCount">0</strong></article>
+        <article class="metric-panel metric-panel-wide"><span class="metric-label">합격 지원금 합계</span><strong><span id="passedAmountTotal">0</span><small>만원</small></strong></article>
+      </section>
 
-                <div class="card">
-                    <h2>내 알림</h2>
-                    <div id="noticeList" class="notice-list"></div>
-                </div>
-            </aside>
+      <section class="control-band" aria-label="과제 등록과 가져오기">
+        <form class="task-form" id="taskForm">
+          <div class="form-grid">
+            <label class="name-field"><span>과제명</span><input id="taskName" name="taskName" type="text" autocomplete="off" required /></label>
+            <label><span>마감일</span><input id="dueDate" name="dueDate" type="date" /></label>
+            <label><span>제출일</span><input id="submittedDate" name="submittedDate" type="date" /></label>
+            <label>
+              <span>상태</span>
+              <select id="resultStatus" name="resultStatus">
+                <option value="검토중">검토중</option>
+                <option value="준비중">준비중</option>
+                <option value="제출완료">제출완료</option>
+                <option value="합격">합격</option>
+                <option value="불합격">불합격</option>
+                <option value="보류">보류</option>
+              </select>
+            </label>
+            <label><span>지원금(만원)</span><input id="grantAmount" name="grantAmount" type="number" min="0" step="1" inputmode="numeric" placeholder="예: 5000" /></label>
+            <label class="notice-field"><span>공고/링크</span><input id="noticeUrl" name="noticeUrl" type="url" autocomplete="off" placeholder="https://..." /></label>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" id="saveTaskButton" type="submit">과제 추가</button>
+            <button class="ghost-button" id="resetFormButton" type="button">입력 초기화</button>
+          </div>
+        </form>
 
-            <section>
-                <div class="card">
-                    <h2>전체 프로젝트 목록</h2>
-                    <div style="overflow-x: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>프로젝트명</th>
-                                    <th>담당자</th>
-                                    <th>만기일</th>
-                                    <th>상태</th>
-                                    <th>확인</th>
-                                </tr>
-                            </thead>
-                            <tbody id="projectTableBody"></tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="card" id="detailPanel" style="display: none;">
-                    <div class="detail-header">
-                        <div>
-                            <h2 id="detailTitle" style="border-bottom: none; margin: 0; padding: 0; font-size: 20px;">프로젝트 제목</h2>
-                        </div>
-                        <select id="detailStatusSelect" class="status-select-sm" onchange="updateActiveProjectStatus(this.value)">
-                            <option value="대기 중">대기 중</option>
-                            <option value="진행 중">진행 중</option>
-                            <option value="완료">완료</option>
-                        </select>
-                    </div>
-                    <div class="detail-meta">
-                        <span><b>담당자:</b> <span id="detailAssignee"></span></span>
-                        <span><b>만기일:</b> <span id="detailDueDate"></span></span>
-                        <span><b>미확인 댓글:</b> <span id="detailUnreadCount"></span></span>
-                    </div>
-                    <div class="detail-content" id="detailContent"></div>
-
-                    <div class="feedback-section">
-                        <h3>피드백 및 댓글 기록</h3>
-                        <div id="feedbackList"></div>
-                        <form id="feedbackForm" class="feedback-form">
-                            <input type="text" id="f_comment" placeholder="프로젝트에 대한 피드백이나 진행 상황을 남겨주세요." required>
-                            <button type="submit" class="btn btn-secondary">등록</button>
-                        </form>
-                    </div>
-                </div>
-            </section>
+        <div class="paste-panel">
+          <div class="panel-title-row">
+            <h2>구글시트 가져오기</h2>
+            <button class="ghost-button" id="importPasteButton" type="button">붙여넣기 반영</button>
+          </div>
+          <div class="sheet-import-grid">
+            <label>
+              <span>구글 스프레드시트 주소</span>
+              <input id="sheetUrl" type="url" value="https://docs.google.com/spreadsheets/d/1torWGNBN1vnWCFMfptJ2K4S8-Rx1OsAC1TDDchiYA_A/edit?usp=sharing" />
+            </label>
+            <label><span>시트명</span><input id="sheetName" type="text" value="2025" /></label>
+            <button class="primary-button" id="importSheetButton" type="button">저장된 시트 데이터 반영</button>
+          </div>
+          <textarea id="sheetPaste" spellcheck="false" placeholder="표를 복사해 붙여넣으면 과제명/마감일/제출일/상태/지원금/링크 형식으로 추가합니다."></textarea>
+          <p class="helper-text" id="importMessage">구글시트에서 가져온 2025 정부사업 데이터가 자동으로 반영됩니다.</p>
         </div>
+      </section>
+
+      <section class="board-toolbar" aria-label="목록 도구">
+        <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="과제명, 상태, 링크 검색" /></div>
+        <select id="statusFilter" aria-label="상태 필터">
+          <option value="active" selected>해야 할 과제</option>
+          <option value="all">전체 과제</option>
+          <option value="준비중">준비중</option>
+          <option value="검토중">검토중</option>
+          <option value="제출완료">제출완료</option>
+          <option value="합격">합격</option>
+          <option value="불합격">불합격</option>
+          <option value="보류">보류</option>
+        </select>
+      </section>
+
+      <section class="board-section" aria-label="정부과제 리스트">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>순번</th><th>과제명</th><th>마감일</th><th>제출일</th><th>상태</th><th>지원금</th><th>공고/메모</th><th>관리</th></tr>
+            </thead>
+            <tbody id="taskTableBody"></tbody>
+          </table>
+          <div class="empty-state" id="emptyState"><strong>등록된 정부과제가 없습니다.</strong><span>구글시트 데이터를 반영하거나 직접 과제를 추가하세요.</span></div>
+        </div>
+      </section>
     </main>
 
-    <script>
-        const PASSWORD = "bnow2503*";
-        const USERS = [
-            { name: "추동현", email: "elon.choo@bnow.co.kr", role: "관리자" },
-            { name: "최창혁", email: "ch.choi@bnow.co.kr", role: "팀원" },
-            { name: "채민강", email: "mk.chae@bnow.co.kr", role: "팀원" },
-            { name: "이세언", email: "su.lee@bnow.co.kr", role: "팀원" },
-            { name: "박수민", email: "sm.park@bnow.co.kr", role: "팀원" },
-            { name: "손근혁", email: "contact@bnow.co.kr", role: "팀원" }
-        ];
-        const STORAGE_KEY = "bnow.workboard.projects.v2";
-        const SESSION_KEY = "bnow.workboard.currentUser";
-
-        const defaultProjects = [
-            {
-                id: 1,
-                title: "AI 기반 스마트 축산 바이오캡슐 센서 파싱 모듈 고도화",
-                assigneeEmail: "mk.chae@bnow.co.kr",
-                due_date: "2026-07-20",
-                status: "진행 중",
-                content: "소의 체온 및 활동량 데이터를 실시간으로 파싱하여 발정기 및 질병 징후를 예측하는 백엔드 아키텍처 고도화 작업.\nRedis 캐싱 레이어를 도입하여 동시 트래픽 처리 성능을 30% 개선할 계획.",
-                feedbacks: [
-                    { id: 101, writerEmail: "elon.choo@bnow.co.kr", writerName: "추동현", comment: "LoRa 게이트웨이 수신 데이터 유실률 체크 로직도 함께 반영 부탁드립니다.", date: "2026-07-05 11:20", readBy: ["elon.choo@bnow.co.kr"] },
-                    { id: 102, writerEmail: "mk.chae@bnow.co.kr", writerName: "채민강", comment: "확인했습니다. Redis 큐 버퍼링 설계 추가하여 유실률 없도록 보완하겠습니다.", date: "2026-07-05 14:15", readBy: ["mk.chae@bnow.co.kr"] }
-                ]
-            },
-            {
-                id: 2,
-                title: "해외 바이어 미팅용 글로벌 IR 리플렛 디자인 및 번역",
-                assigneeEmail: "ch.choi@bnow.co.kr",
-                due_date: "2026-08-15",
-                status: "대기 중",
-                content: "베트남 및 호주 축산 농가 진출을 위한 영문/베트남어 기술 제안서 및 회사 IR 리플렛 제작 건.\nHancom Show 원본 소스를 고해상도 PDF로 내보낼 때 폰트 깨짐 현상이 없는지 사전 검증 필요.",
-                feedbacks: []
-            }
-        ];
-
-        let projects = loadProjects();
-        let activeProjectId = projects[0]?.id || null;
-        let currentUser = null;
-
-        function loadProjects() {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) return structuredClone(defaultProjects);
-            try {
-                return JSON.parse(saved);
-            } catch {
-                return structuredClone(defaultProjects);
-            }
-        }
-
-        function saveProjects() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(projects));
-        }
-
-        function getUser(email) {
-            return USERS.find(user => user.email === email);
-        }
-
-        function getAssigneeName(project) {
-            return getUser(project.assigneeEmail)?.name || project.assigneeEmail || "미지정";
-        }
-
-        function getCurrentUserUnread(project) {
-            if (!currentUser) return [];
-            return project.feedbacks.filter(feedback => feedback.writerEmail !== currentUser.email && !feedback.readBy.includes(currentUser.email));
-        }
-
-        function getDaysUntilDue(project) {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const due = new Date(project.due_date + "T00:00:00");
-            return Math.ceil((due - today) / 86400000);
-        }
-
-        function formatNow() {
-            const now = new Date();
-            return `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")} ${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
-        }
-
-        function fillAssigneeOptions() {
-            const select = document.getElementById("p_assignee");
-            select.innerHTML = USERS.map(user => `<option value="${user.email}">${user.name} (${user.email})</option>`).join("");
-        }
-
-        function renderNotices() {
-            const list = document.getElementById("noticeList");
-            const notices = [];
-            projects.forEach(project => {
-                const unreadCount = getCurrentUserUnread(project).length;
-                if (unreadCount > 0) {
-                    notices.push(`<button type="button" class="notice unread" onclick="selectProject(${project.id})"><span>${project.title}</span><b>댓글 ${unreadCount}개 읽기</b></button>`);
-                }
-                const daysLeft = getDaysUntilDue(project);
-                const isMine = currentUser.role === "관리자" || project.assigneeEmail === currentUser.email;
-                if (isMine && project.status !== "완료" && [1, 2, 3].includes(daysLeft)) {
-                    notices.push(`<button type="button" class="notice due" onclick="selectProject(${project.id})"><span>${project.title}</span><b>D-${daysLeft}</b></button>`);
-                }
-            });
-            list.innerHTML = notices.length ? notices.join("") : '<div class="muted">현재 확인할 알림이 없습니다.</div>';
-        }
-
-        function renderTable() {
-            const tbody = document.getElementById("projectTableBody");
-            tbody.innerHTML = "";
-            projects.forEach(project => {
-                const unreadCount = getCurrentUserUnread(project).length;
-                const daysLeft = getDaysUntilDue(project);
-                const tr = document.createElement("tr");
-                tr.className = project.id === activeProjectId ? "active-row" : "";
-                tr.onclick = () => selectProject(project.id);
-
-                let statusBadge = "";
-                if (project.status === "대기 중") statusBadge = '<span class="badge badge-waiting">대기 중</span>';
-                if (project.status === "진행 중") statusBadge = '<span class="badge badge-progress">진행 중</span>';
-                if (project.status === "완료") statusBadge = '<span class="badge badge-complete">완료</span>';
-
-                const dueBadge = project.status !== "완료" && [1, 2, 3].includes(daysLeft) ? `<span class="badge badge-alert">D-${daysLeft}</span>` : "";
-                const unreadBadge = unreadCount > 0 ? `<span class="badge badge-alert">읽어야 할 댓글 ${unreadCount}</span>` : '<span class="badge badge-soft">확인 완료</span>';
-
-                tr.innerHTML = `
-                    <td><div class="project-title-cell"><strong>${project.title}</strong>${dueBadge}</div></td>
-                    <td>${getAssigneeName(project)}</td>
-                    <td>${project.due_date}</td>
-                    <td>${statusBadge}</td>
-                    <td>${unreadBadge}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        function renderDetail() {
-            const project = projects.find(item => item.id === activeProjectId);
-            if (!project) return;
-            document.getElementById("detailPanel").style.display = "block";
-            document.getElementById("detailTitle").innerText = project.title;
-            document.getElementById("detailAssignee").innerText = `${getAssigneeName(project)} (${project.assigneeEmail})`;
-            document.getElementById("detailDueDate").innerText = project.due_date;
-            document.getElementById("detailContent").innerText = project.content;
-            document.getElementById("detailStatusSelect").value = project.status;
-            document.getElementById("detailUnreadCount").innerText = `${getCurrentUserUnread(project).length}개`;
-
-            const fbList = document.getElementById("feedbackList");
-            if (project.feedbacks.length === 0) {
-                fbList.innerHTML = '<div class="muted">아직 등록된 피드백이 없습니다.</div>';
-                return;
-            }
-
-            fbList.innerHTML = "";
-            project.feedbacks.forEach(feedback => {
-                const unread = feedback.writerEmail !== currentUser.email && !feedback.readBy.includes(currentUser.email);
-                const div = document.createElement("div");
-                div.className = `feedback-item${unread ? " unread" : ""}`;
-                div.innerHTML = `
-                    <div class="meta">
-                        <strong>${feedback.writerName} (${feedback.writerEmail})</strong>
-                        <span>${feedback.date}${unread ? " · 미확인" : ""}</span>
-                    </div>
-                    <div class="comment">${feedback.comment}</div>
-                `;
-                fbList.appendChild(div);
-            });
-        }
-
-        function render() {
-            document.getElementById("currentUserLabel").innerText = `${currentUser.name} ${currentUser.role}`;
-            renderNotices();
-            renderTable();
-            renderDetail();
-        }
-
-        function selectProject(id) {
-            activeProjectId = id;
-            const project = projects.find(item => item.id === id);
-            if (project) {
-                project.feedbacks.forEach(feedback => {
-                    if (feedback.writerEmail !== currentUser.email && !feedback.readBy.includes(currentUser.email)) {
-                        feedback.readBy.push(currentUser.email);
-                    }
-                });
-                saveProjects();
-            }
-            render();
-        }
-
-        function updateActiveProjectStatus(newStatus) {
-            const project = projects.find(item => item.id === activeProjectId);
-            if (project) {
-                project.status = newStatus;
-                saveProjects();
-                render();
-            }
-        }
-
-        function login(user) {
-            currentUser = user;
-            sessionStorage.setItem(SESSION_KEY, user.email);
-            document.getElementById("loginScreen").classList.add("hidden");
-            document.getElementById("app").style.display = "block";
-            fillAssigneeOptions();
-            render();
-        }
-
-        function logout() {
-            sessionStorage.removeItem(SESSION_KEY);
-            currentUser = null;
-            document.getElementById("loginScreen").classList.remove("hidden");
-            document.getElementById("app").style.display = "none";
-        }
-
-        document.getElementById("loginForm").addEventListener("submit", event => {
-            event.preventDefault();
-            const email = document.getElementById("loginEmail").value.trim().toLowerCase();
-            const password = document.getElementById("loginPassword").value;
-            const user = getUser(email);
-            if (!user || password !== PASSWORD) {
-                document.getElementById("loginError").innerText = "아이디 또는 비밀번호가 올바르지 않습니다.";
-                return;
-            }
-            document.getElementById("loginError").innerText = "";
-            login(user);
-        });
-
-        document.getElementById("projectForm").addEventListener("submit", event => {
-            event.preventDefault();
-            const newProject = {
-                id: Date.now(),
-                title: document.getElementById("p_title").value.trim(),
-                assigneeEmail: document.getElementById("p_assignee").value,
-                due_date: document.getElementById("p_duedate").value,
-                status: document.getElementById("p_status").value,
-                content: document.getElementById("p_content").value.trim(),
-                feedbacks: []
-            };
-            projects.push(newProject);
-            activeProjectId = newProject.id;
-            saveProjects();
-            event.target.reset();
-            render();
-        });
-
-        document.getElementById("feedbackForm").addEventListener("submit", event => {
-            event.preventDefault();
-            const commentInput = document.getElementById("f_comment");
-            const project = projects.find(item => item.id === activeProjectId);
-            if (!project || !commentInput.value.trim()) return;
-            project.feedbacks.push({
-                id: Date.now(),
-                writerEmail: currentUser.email,
-                writerName: currentUser.name,
-                comment: commentInput.value.trim(),
-                date: formatNow(),
-                readBy: [currentUser.email]
-            });
-            commentInput.value = "";
-            saveProjects();
-            render();
-        });
-
-        const rememberedEmail = sessionStorage.getItem(SESSION_KEY);
-        const rememberedUser = rememberedEmail ? getUser(rememberedEmail) : null;
-        if (rememberedUser) login(rememberedUser);
-    </script>
-</body>
+    <script src="app.js"></script>
+  </body>
 </html>
+

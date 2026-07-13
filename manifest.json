@@ -1,0 +1,16 @@
+{
+  "name": "BNOW 정부과제 워크보드",
+  "short_name": "정부과제",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f4f7f5",
+  "theme_color": "#155e75",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -75,16 +75,20 @@
 
       <section class="board-toolbar" aria-label="목록 도구">
         <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="과제명, 상태, 링크 검색" /></div>
-        <select id="statusFilter" aria-label="상태 필터">
-          <option value="active" selected>해야 할 과제</option>
-          <option value="all">전체 과제</option>
-          <option value="준비중">준비중</option>
-          <option value="검토중">검토중</option>
-          <option value="제출완료">제출완료</option>
-          <option value="합격">합격</option>
-          <option value="불합격">불합격</option>
-          <option value="보류">보류</option>
-        </select>
+        <div class="toolbar-controls">
+          <label class="page-size-control"><span>보기</span><select id="pageSizeSelect" aria-label="페이지당 표시 개수"><option value="10">10개</option><option value="20" selected>20개</option><option value="50">50개</option><option value="100">100개</option></select></label>
+          <select id="statusFilter" aria-label="상태 필터">
+            <option value="active" selected>해야 할 과제</option>
+            <option value="all">전체 과제</option>
+            <option value="준비중">준비중</option>
+            <option value="검토중">검토중</option>
+            <option value="제출완료">제출완료</option>
+            <option value="합격">합격</option>
+            <option value="불합격">불합격</option>
+            <option value="보류">보류</option>
+          </select>
+          <div class="pagination-controls" aria-label="페이지 이동"><button class="ghost-button page-button" id="prevPageButton" type="button">이전</button><span id="pageInfo">1 / 1</span><button class="ghost-button page-button" id="nextPageButton" type="button">다음</button></div>
+        </div>
       </section>
 
       <section class="board-section" aria-label="정부과제 리스트">

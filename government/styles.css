@@ -615,3 +615,59 @@ td strong {
     width: 100%;
   }
 }
+
+
+.toolbar-controls,
+.page-size-control,
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.page-size-control span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.page-size-control select,
+.pagination-controls .page-button {
+  min-height: 32px;
+}
+
+.pagination-controls #pageInfo {
+  min-width: 120px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+@media (max-width: 720px) {
+  .toolbar-controls,
+  .page-size-control,
+  .pagination-controls {
+    width: 100%;
+  }
+
+  .toolbar-controls {
+    justify-content: stretch;
+  }
+
+  .page-size-control select,
+  .toolbar-controls select,
+  .pagination-controls .page-button {
+    flex: 1;
+  }
+}

@@ -63,28 +63,32 @@
           <div class="sheet-import-grid">
             <label>
               <span>구글 스프레드시트 주소</span>
-              <input id="sheetUrl" type="url" value="https://docs.google.com/spreadsheets/d/1torWGNBN1vnWCFMfptJ2K4S8-Rx1OsAC1TDDchiYA_A/edit?usp=sharing" />
+              <input id="sheetUrl" type="url" value="https://docs.google.com/spreadsheets/d/1torWGNBN1vnWCFMfptJ2K4S8-Rx1OsAC1TDDchiYA_A/edit?gid=131121860#gid=131121860" />
             </label>
-            <label><span>시트명</span><input id="sheetName" type="text" value="2025" /></label>
+            <label><span>시트명</span><input id="sheetName" type="text" value="2026 하반기 일정" /></label>
             <button class="primary-button" id="importSheetButton" type="button">저장된 시트 데이터 반영</button>
           </div>
           <textarea id="sheetPaste" spellcheck="false" placeholder="표를 복사해 붙여넣으면 과제명/마감일/제출일/상태/지원금/링크 형식으로 추가합니다."></textarea>
-          <p class="helper-text" id="importMessage">구글시트에서 가져온 2025 정부사업 데이터가 자동으로 반영됩니다.</p>
+          <p class="helper-text" id="importMessage">구글시트 2026 하반기 일정 데이터가 자동으로 반영됩니다.</p>
         </div>
       </section>
 
       <section class="board-toolbar" aria-label="목록 도구">
         <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="과제명, 상태, 링크 검색" /></div>
-        <select id="statusFilter" aria-label="상태 필터">
-          <option value="active" selected>해야 할 과제</option>
-          <option value="all">전체 과제</option>
-          <option value="준비중">준비중</option>
-          <option value="검토중">검토중</option>
-          <option value="제출완료">제출완료</option>
-          <option value="합격">합격</option>
-          <option value="불합격">불합격</option>
-          <option value="보류">보류</option>
-        </select>
+        <div class="toolbar-controls">
+          <label class="page-size-control"><span>보기</span><select id="pageSizeSelect" aria-label="페이지당 표시 개수"><option value="10">10개</option><option value="20" selected>20개</option><option value="50">50개</option><option value="100">100개</option></select></label>
+          <select id="statusFilter" aria-label="상태 필터">
+            <option value="active">해야 할 과제</option>
+            <option value="all" selected>전체 과제</option>
+            <option value="준비중">준비중</option>
+            <option value="검토중">검토중</option>
+            <option value="제출완료">제출완료</option>
+            <option value="합격">합격</option>
+            <option value="불합격">불합격</option>
+            <option value="보류">보류</option>
+          </select>
+          <div class="pagination-controls" aria-label="페이지 이동"><button class="ghost-button page-button" id="prevPageButton" type="button">이전</button><span id="pageInfo">1 / 1</span><button class="ghost-button page-button" id="nextPageButton" type="button">다음</button></div>
+        </div>
       </section>
 
       <section class="board-section" aria-label="정부과제 리스트">
@@ -103,4 +107,3 @@
     <script src="app.js"></script>
   </body>
 </html>
-

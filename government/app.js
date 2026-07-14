@@ -1,5 +1,5 @@
 const STORAGE_KEY = "bnow.project-board.tasks";
-const IMPORT_META_KEY = "bnow.project-board.googleSheetImport";
+const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2";
 const SEED_URL = "data/google-sheet-tasks.json";
 
 const taskForm = document.querySelector("#taskForm");
@@ -19,6 +19,10 @@ const importPasteButton = document.querySelector("#importPasteButton");
 const importMessage = document.querySelector("#importMessage");
 const searchInput = document.querySelector("#searchInput");
 const statusFilter = document.querySelector("#statusFilter");
+const pageSizeSelect = document.querySelector("#pageSizeSelect");
+const prevPageButton = document.querySelector("#prevPageButton");
+const nextPageButton = document.querySelector("#nextPageButton");
+const pageInfo = document.querySelector("#pageInfo");
 const taskTableBody = document.querySelector("#taskTableBody");
 const emptyState = document.querySelector("#emptyState");
 
@@ -30,6 +34,7 @@ const passedAmountTotal = document.querySelector("#passedAmountTotal");
 
 let tasks = loadTasks();
 let editingId = null;
+let currentPage = 1;
 
 function loadTasks() {
   try {
@@ -168,16 +173,27 @@ function getStatusClass(status) {
   }[status] || "status-review";
 }
 
+function resetPagination() {
+  currentPage = 1;
+}
+
 function render() {
   const query = searchInput.value.trim().toLowerCase();
   const status = statusFilter.value;
-  const visibleTasks = tasks
+  const filteredTasks = tasks
     .filter((task) => {
       const matchesStatus = status === "all" || (status === "active" ? isActionableTask(task) : task.resultStatus === status);
       const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.noticeUrl}`.toLowerCase();
       return matchesStatus && haystack.includes(query);
     })
     .sort((a, b) => getDueTime(b) - getDueTime(a));
+
+  const pageSize = Number(pageSizeSelect?.value || 20);
+  const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
+  const startIndex = (currentPage - 1) * pageSize;
+  const visibleTasks = filteredTasks.slice(startIndex, startIndex + pageSize);
 
   totalCount.textContent = tasks.length;
   pendingCount.textContent = tasks.filter(isActionableTask).length;
@@ -191,6 +207,10 @@ function render() {
     .reduce((sum, task) => sum + normalizeAmount(task.grantAmount), 0)
     .toLocaleString("ko-KR");
 
+  if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages} (${filteredTasks.length}개)`;
+  if (prevPageButton) prevPageButton.disabled = currentPage <= 1;
+  if (nextPageButton) nextPageButton.disabled = currentPage >= totalPages;
+
   taskTableBody.innerHTML = visibleTasks.map((task, index) => {
     const dueLabel = getDueLabel(task);
     const memo = [task.organizer, task.originalResult, task.selectedStatus, task.notes].filter(Boolean).join(" / ");
@@ -200,7 +220,7 @@ function render() {
 
     return `
       <tr>
-        <td class="number-cell">${index + 1}</td>
+        <td class="number-cell">${startIndex + index + 1}</td>
         <td><strong>${escapeHtml(task.name)}</strong></td>
         <td><span>${formatDate(task.dueDate)}</span>${dueLabel ? `<small class="due-label">${escapeHtml(dueLabel)}</small>` : ""}</td>
         <td>${formatDate(task.submittedDate)}</td>
@@ -211,7 +231,7 @@ function render() {
       </tr>`;
   }).join("");
 
-  emptyState.hidden = visibleTasks.length > 0;
+  emptyState.hidden = filteredTasks.length > 0;
 }
 
 async function loadGoogleSheetSeed({ replace = false } = {}) {
@@ -229,7 +249,7 @@ async function loadGoogleSheetSeed({ replace = false } = {}) {
   }
 
   saveTasks();
-  localStorage.setItem(IMPORT_META_KEY, JSON.stringify({ importedAt: payload.importedAt, sourceUrl: payload.sourceUrl, rowCount: payload.rowCount }));
+  localStorage.setItem(IMPORT_META_KEY, JSON.stringify({ version: payload.version, importedAt: payload.importedAt, sourceUrl: payload.sourceUrl, sheetName: payload.sheetName, gid: payload.gid, rowCount: payload.rowCount }));
   importMessage.textContent = `구글시트 ${payload.rowCount}개 과제를 반영했습니다.`;
   render();
 }
@@ -237,7 +257,7 @@ async function loadGoogleSheetSeed({ replace = false } = {}) {
 async function autoLoadGoogleSheetSeed() {
   try {
     const meta = localStorage.getItem(IMPORT_META_KEY);
-    if (!meta || tasks.length === 0) await loadGoogleSheetSeed({ replace: tasks.length === 0 });
+    if (!meta || tasks.length === 0) await loadGoogleSheetSeed({ replace: true });
     else render();
   } catch (error) {
     importMessage.textContent = error.message;
@@ -333,8 +353,11 @@ importPasteButton.addEventListener("click", importFromPaste);
 importSeedButton.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { importMessage.textContent = error.message; }));
 importSheetButton.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { importMessage.textContent = error.message; }));
 exportButton.addEventListener("click", exportCsv);
-searchInput.addEventListener("input", render);
-statusFilter.addEventListener("change", render);
+searchInput.addEventListener("input", () => { resetPagination(); render(); });
+statusFilter.addEventListener("change", () => { resetPagination(); render(); });
+pageSizeSelect?.addEventListener("change", () => { resetPagination(); render(); });
+prevPageButton?.addEventListener("click", () => { currentPage -= 1; render(); });
+nextPageButton?.addEventListener("click", () => { currentPage += 1; render(); });
 
 taskTableBody.addEventListener("click", (event) => {
   const button = event.target.closest("button");

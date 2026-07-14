@@ -205,6 +205,20 @@ h2 {
   color: #ffffff;
 }
 
+.dashboard-button {
+  min-height: 38px;
+  border: 1px solid #000000;
+  border-radius: 8px;
+  background: #000000;
+  color: #ffffff;
+  padding: 0 13px;
+  font-weight: 800;
+}
+
+.dashboard-button:hover {
+  background: #111111;
+}
+
 .ghost-button,
 .row-actions button {
   border: 1px solid var(--line);

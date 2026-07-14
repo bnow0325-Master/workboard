@@ -50,6 +50,9 @@ function saveTasks() {
 }
 
 function cleanTask(task) {
+  const legacyNotes = String(task.notes || "").trim();
+  const managerNote = String(task.managerNote ?? task.assigneeNote ?? legacyNotes).trim();
+
   return {
     id: task.id || makeId(task.name || "task"),
     name: String(task.name || "이름 없는 과제").trim(),
@@ -63,7 +66,9 @@ function cleanTask(task) {
     selectedStatus: String(task.selectedStatus || "").trim(),
     grantAmount: normalizeAmount(task.grantAmount),
     noticeUrl: String(task.noticeUrl || "").trim(),
-    notes: String(task.notes || "").trim(),
+    notes: legacyNotes || managerNote,
+    ownerNote: String(task.ownerNote ?? task.myNote ?? "").trim(),
+    managerNote,
     source: task.source || "manual",
     createdAt: task.createdAt || new Date().toISOString()
   };
@@ -96,7 +101,9 @@ function normalizeAmount(value) {
 
 function normalizeStatus(value) {
   const source = String(value || "").trim();
-  if (["준비중", "검토중", "제출완료", "합격", "불합격", "보류"].includes(source)) return source;
+  const statusList = ["준비중", "검토중", "제출완료", "합격", "불합격", "지원못함", "보류"];
+  if (statusList.includes(source)) return source;
+  if (/지원못함|지원불가|지원 불가|신청불가|신청 불가|대상아님|대상 아님|미신청|입주불가/.test(source)) return "지원못함";
   if (/미합격|불합격|탈락|제외/.test(source)) return "불합격";
   if (/합격|선정|완료|채택/.test(source)) return "합격";
   if (/제출|신청|접수/.test(source)) return "제출완료";
@@ -144,6 +151,15 @@ function getDueLabel(task) {
   return "";
 }
 
+function getUrgencyBadge(task) {
+  const left = daysUntil(task.dueDate);
+  if (left === null || left < 0 || task.submittedDate) return "";
+  if (left > 7) return "";
+  const level = left <= 3 ? "red" : left <= 5 ? "orange" : "green";
+  const label = left === 0 ? "오늘 마감" : `${left}일 남음`;
+  return `<span class="urgency-badge urgency-${level}">${escapeHtml(label)}</span>`;
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")
@@ -169,6 +185,7 @@ function getStatusClass(status) {
     제출완료: "status-submitted",
     합격: "status-pass",
     불합격: "status-fail",
+    지원못함: "status-unavailable",
     보류: "status-hold"
   }[status] || "status-review";
 }
@@ -183,7 +200,7 @@ function render() {
   const filteredTasks = tasks
     .filter((task) => {
       const matchesStatus = status === "all" || (status === "active" ? isActionableTask(task) : task.resultStatus === status);
-      const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.noticeUrl}`.toLowerCase();
+      const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.ownerNote} ${task.managerNote} ${task.noticeUrl}`.toLowerCase();
       return matchesStatus && haystack.includes(query);
     })
     .sort((a, b) => getDueTime(b) - getDueTime(a));
@@ -213,7 +230,9 @@ function render() {
 
   taskTableBody.innerHTML = visibleTasks.map((task, index) => {
     const dueLabel = getDueLabel(task);
-    const memo = [task.organizer, task.originalResult, task.selectedStatus, task.notes].filter(Boolean).join(" / ");
+    const urgencyBadge = getUrgencyBadge(task);
+    const memo = [task.organizer, task.originalResult, task.selectedStatus].filter(Boolean).join(" / ");
+    const taskId = escapeHtml(task.id);
     const noticeCell = task.noticeUrl && isUrl(task.noticeUrl)
       ? `<a href="${escapeHtml(task.noticeUrl)}" target="_blank" rel="noreferrer">공고 열기</a>${memo ? `<small>${escapeHtml(memo)}</small>` : ""}`
       : (memo || task.noticeUrl ? `<span>${escapeHtml([task.noticeUrl, memo].filter(Boolean).join(" / "))}</span>` : "-");
@@ -221,13 +240,21 @@ function render() {
     return `
       <tr>
         <td class="number-cell">${startIndex + index + 1}</td>
-        <td><strong>${escapeHtml(task.name)}</strong></td>
+        <td>
+          <div class="task-title-wrap">
+            <div class="task-name-line"><strong>${escapeHtml(task.name)}</strong>${urgencyBadge}</div>
+            <div class="task-note-grid">
+              <label class="task-note task-note-owner"><span>내 비고</span><textarea data-note-field="ownerNote" data-id="${taskId}" placeholder="내가 볼 내용">${escapeHtml(task.ownerNote)}</textarea></label>
+              <label class="task-note task-note-manager"><span>채민강 비고</span><textarea data-note-field="managerNote" data-id="${taskId}" placeholder="담당자 내용">${escapeHtml(task.managerNote)}</textarea></label>
+            </div>
+          </div>
+        </td>
         <td><span>${formatDate(task.dueDate)}</span>${dueLabel ? `<small class="due-label">${escapeHtml(dueLabel)}</small>` : ""}</td>
         <td>${formatDate(task.submittedDate)}</td>
         <td><span class="status-pill ${getStatusClass(task.resultStatus)}">${escapeHtml(task.resultStatus)}</span></td>
         <td class="amount-cell">${formatAmount(task.grantAmount)}</td>
         <td class="notice-cell">${noticeCell}</td>
-        <td><div class="row-actions"><button type="button" data-action="edit" data-id="${task.id}">수정</button><button type="button" data-action="delete" data-id="${task.id}">삭제</button></div></td>
+        <td><div class="row-actions"><button type="button" data-action="edit" data-id="${taskId}">수정</button><button type="button" data-action="delete" data-id="${taskId}">삭제</button></div></td>
       </tr>`;
   }).join("");
 
@@ -250,7 +277,7 @@ async function loadGoogleSheetSeed({ replace = false } = {}) {
 
   saveTasks();
   localStorage.setItem(IMPORT_META_KEY, JSON.stringify({ version: payload.version, importedAt: payload.importedAt, sourceUrl: payload.sourceUrl, sheetName: payload.sheetName, gid: payload.gid, rowCount: payload.rowCount }));
-  importMessage.textContent = `구글시트 ${payload.rowCount}개 과제를 반영했습니다.`;
+  if (importMessage) importMessage.textContent = `구글시트 ${payload.rowCount}개 과제를 반영했습니다.`;
   render();
 }
 
@@ -260,7 +287,7 @@ async function autoLoadGoogleSheetSeed() {
     if (!meta || tasks.length === 0) await loadGoogleSheetSeed({ replace: true });
     else render();
   } catch (error) {
-    importMessage.textContent = error.message;
+    if (importMessage) importMessage.textContent = error.message;
     render();
   }
 }
@@ -308,9 +335,10 @@ function parsePastedRows(text) {
 }
 
 function importFromPaste() {
+  if (!sheetPaste) return;
   const rows = parsePastedRows(sheetPaste.value);
   if (!rows.length) {
-    importMessage.textContent = "붙여넣은 표가 없습니다.";
+    if (importMessage) importMessage.textContent = "붙여넣은 표가 없습니다.";
     return;
   }
   const headerWords = ["과제명", "마감", "제출", "상태", "지원금", "링크"];
@@ -322,13 +350,24 @@ function importFromPaste() {
   tasks = [...tasks, ...imported];
   saveTasks();
   sheetPaste.value = "";
-  importMessage.textContent = `${imported.length}개 과제를 추가했습니다.`;
+  if (importMessage) importMessage.textContent = `${imported.length}개 과제를 추가했습니다.`;
   render();
 }
 
+function updateTaskNote(taskId, field, value) {
+  if (!["ownerNote", "managerNote"].includes(field)) return;
+  tasks = tasks.map((task) => {
+    if (task.id !== taskId) return task;
+    const updated = { ...task, [field]: value };
+    if (field === "managerNote") updated.notes = value;
+    return updated;
+  });
+  saveTasks();
+}
+
 function exportCsv() {
-  const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "메모"];
-  const rows = tasks.map((task, index) => [index + 1, task.name, task.organizer, task.dueDate, task.submittedDate, task.resultStatus, task.originalResult, task.selectedStatus, task.grantAmount, task.noticeUrl, task.notes]);
+  const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "내 비고", "채민강 비고"];
+  const rows = tasks.map((task, index) => [index + 1, task.name, task.organizer, task.dueDate, task.submittedDate, task.resultStatus, task.originalResult, task.selectedStatus, task.grantAmount, task.noticeUrl, task.ownerNote, task.managerNote || task.notes]);
   const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
   const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
   const link = document.createElement("a");
@@ -349,15 +388,21 @@ taskForm.addEventListener("submit", (event) => {
 });
 
 resetFormButton.addEventListener("click", resetForm);
-importPasteButton.addEventListener("click", importFromPaste);
-importSeedButton.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { importMessage.textContent = error.message; }));
-importSheetButton.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { importMessage.textContent = error.message; }));
+importPasteButton?.addEventListener("click", importFromPaste);
+importSeedButton?.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { if (importMessage) importMessage.textContent = error.message; }));
+importSheetButton?.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { if (importMessage) importMessage.textContent = error.message; }));
 exportButton.addEventListener("click", exportCsv);
 searchInput.addEventListener("input", () => { resetPagination(); render(); });
 statusFilter.addEventListener("change", () => { resetPagination(); render(); });
 pageSizeSelect?.addEventListener("change", () => { resetPagination(); render(); });
 prevPageButton?.addEventListener("click", () => { currentPage -= 1; render(); });
 nextPageButton?.addEventListener("click", () => { currentPage += 1; render(); });
+
+taskTableBody.addEventListener("input", (event) => {
+  const noteField = event.target.closest("[data-note-field]");
+  if (!noteField) return;
+  updateTaskNote(noteField.dataset.id, noteField.dataset.noteField, noteField.value);
+});
 
 taskTableBody.addEventListener("click", (event) => {
   const button = event.target.closest("button");
@@ -373,4 +418,3 @@ taskTableBody.addEventListener("click", (event) => {
 });
 
 autoLoadGoogleSheetSeed();
-

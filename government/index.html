@@ -61,17 +61,14 @@
         <div class="search-wrap"><span aria-hidden="true">⌕</span><input id="searchInput" type="search" placeholder="과제명, 상태, 링크 검색" /></div>
         <div class="toolbar-controls">
           <label class="page-size-control"><span>보기</span><select id="pageSizeSelect" aria-label="페이지당 표시 개수"><option value="10">10개</option><option value="20" selected>20개</option><option value="50">50개</option><option value="100">100개</option></select></label>
-          <select id="statusFilter" aria-label="상태 필터">
-            <option value="active">해야 할 과제</option>
-            <option value="all" selected>전체 과제</option>
-            <option value="준비중">준비중</option>
-            <option value="검토중">검토중</option>
-            <option value="제출완료">제출완료</option>
-            <option value="합격">합격</option>
-            <option value="불합격">불합격</option>
-            <option value="지원못함">지원못함</option>
-            <option value="보류">보류</option>
-          </select>
+          <div class="status-tabs" id="statusTabs" role="tablist" aria-label="상태별 과제 목록">
+            <button class="status-tab is-active" type="button" role="tab" aria-selected="true" data-status-view="main">메인 <span data-status-count="main">0</span></button>
+            <button class="status-tab" type="button" role="tab" aria-selected="false" data-status-view="제출완료">제출완료 <span data-status-count="제출완료">0</span></button>
+            <button class="status-tab" type="button" role="tab" aria-selected="false" data-status-view="합격">합격 <span data-status-count="합격">0</span></button>
+            <button class="status-tab" type="button" role="tab" aria-selected="false" data-status-view="불합격">불합격 <span data-status-count="불합격">0</span></button>
+            <button class="status-tab" type="button" role="tab" aria-selected="false" data-status-view="지원못함">지원못함 <span data-status-count="지원못함">0</span></button>
+            <button class="status-tab" type="button" role="tab" aria-selected="false" data-status-view="보류">보류 <span data-status-count="보류">0</span></button>
+          </div>
           <div class="pagination-controls" aria-label="페이지 이동"><button class="ghost-button page-button" id="prevPageButton" type="button">이전</button><span id="pageInfo">1 / 1</span><button class="ghost-button page-button" id="nextPageButton" type="button">다음</button></div>
         </div>
       </section>

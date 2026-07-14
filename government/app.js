@@ -1,6 +1,9 @@
 const STORAGE_KEY = "bnow.project-board.tasks";
 const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2";
 const SEED_URL = "data/google-sheet-tasks.json";
+const STATUS_OPTIONS = ["준비중", "검토중", "제출완료", "합격", "불합격", "지원못함", "보류"];
+const MAIN_STATUS_OPTIONS = ["준비중", "검토중"];
+const STATUS_VIEWS = ["main", "제출완료", "합격", "불합격", "지원못함", "보류"];
 
 const taskForm = document.querySelector("#taskForm");
 const taskNameInput = document.querySelector("#taskName");
@@ -18,7 +21,7 @@ const importSheetButton = document.querySelector("#importSheetButton");
 const importPasteButton = document.querySelector("#importPasteButton");
 const importMessage = document.querySelector("#importMessage");
 const searchInput = document.querySelector("#searchInput");
-const statusFilter = document.querySelector("#statusFilter");
+const statusTabs = document.querySelector("#statusTabs");
 const pageSizeSelect = document.querySelector("#pageSizeSelect");
 const prevPageButton = document.querySelector("#prevPageButton");
 const nextPageButton = document.querySelector("#nextPageButton");
@@ -35,6 +38,7 @@ const passedAmountTotal = document.querySelector("#passedAmountTotal");
 let tasks = loadTasks();
 let editingId = null;
 let currentPage = 1;
+let currentStatusView = "main";
 
 function loadTasks() {
   try {
@@ -101,8 +105,7 @@ function normalizeAmount(value) {
 
 function normalizeStatus(value) {
   const source = String(value || "").trim();
-  const statusList = ["준비중", "검토중", "제출완료", "합격", "불합격", "지원못함", "보류"];
-  if (statusList.includes(source)) return source;
+  if (STATUS_OPTIONS.includes(source)) return source;
   if (/지원못함|지원불가|지원 불가|신청불가|신청 불가|대상아님|대상 아님|미신청|입주불가/.test(source)) return "지원못함";
   if (/미합격|불합격|탈락|제외/.test(source)) return "불합격";
   if (/합격|선정|완료|채택/.test(source)) return "합격";
@@ -134,7 +137,7 @@ function daysUntil(value) {
 
 function isActionableTask(task) {
   const left = daysUntil(task.dueDate);
-  return ["검토중", "준비중"].includes(task.resultStatus) && !task.submittedDate && (left === null || left >= 0);
+  return MAIN_STATUS_OPTIONS.includes(task.resultStatus) && !task.submittedDate && (left === null || left >= 0);
 }
 
 function getDueTime(task) {
@@ -194,12 +197,47 @@ function resetPagination() {
   currentPage = 1;
 }
 
+function matchesStatusView(task, view) {
+  if (view === "main") return MAIN_STATUS_OPTIONS.includes(task.resultStatus);
+  return task.resultStatus === view;
+}
+
+function getStatusCounts() {
+  const counts = Object.fromEntries(STATUS_VIEWS.map((view) => [view, 0]));
+  for (const task of tasks) {
+    if (MAIN_STATUS_OPTIONS.includes(task.resultStatus)) counts.main += 1;
+    else if (Object.hasOwn(counts, task.resultStatus)) counts[task.resultStatus] += 1;
+  }
+  return counts;
+}
+
+function updateStatusTabs() {
+  const counts = getStatusCounts();
+  document.querySelectorAll("[data-status-view]").forEach((tab) => {
+    const selected = tab.dataset.statusView === currentStatusView;
+    tab.classList.toggle("is-active", selected);
+    tab.setAttribute("aria-selected", String(selected));
+  });
+  document.querySelectorAll("[data-status-count]").forEach((counter) => {
+    counter.textContent = counts[counter.dataset.statusCount] ?? 0;
+  });
+}
+
+function renderStatusSelect(task) {
+  const options = STATUS_OPTIONS.map((status) => {
+    const selected = task.resultStatus === status ? " selected" : "";
+    return `<option value="${escapeHtml(status)}"${selected}>${escapeHtml(status)}</option>`;
+  }).join("");
+
+  return `<select class="row-status-select ${getStatusClass(task.resultStatus)}" data-status-id="${escapeHtml(task.id)}" aria-label="${escapeHtml(task.name)} 상태 변경">${options}</select>`;
+}
+
 function render() {
   const query = searchInput.value.trim().toLowerCase();
-  const status = statusFilter.value;
+  const status = currentStatusView;
   const filteredTasks = tasks
     .filter((task) => {
-      const matchesStatus = status === "all" || (status === "active" ? isActionableTask(task) : task.resultStatus === status);
+      const matchesStatus = matchesStatusView(task, status);
       const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.ownerNote} ${task.managerNote} ${task.noticeUrl}`.toLowerCase();
       return matchesStatus && haystack.includes(query);
     })
@@ -223,6 +261,7 @@ function render() {
     .filter((task) => task.resultStatus === "합격")
     .reduce((sum, task) => sum + normalizeAmount(task.grantAmount), 0)
     .toLocaleString("ko-KR");
+  updateStatusTabs();
 
   if (pageInfo) pageInfo.textContent = `${currentPage} / ${totalPages} (${filteredTasks.length}개)`;
   if (prevPageButton) prevPageButton.disabled = currentPage <= 1;
@@ -251,7 +290,7 @@ function render() {
         </td>
         <td><span>${formatDate(task.dueDate)}</span>${dueLabel ? `<small class="due-label">${escapeHtml(dueLabel)}</small>` : ""}</td>
         <td>${formatDate(task.submittedDate)}</td>
-        <td><span class="status-pill ${getStatusClass(task.resultStatus)}">${escapeHtml(task.resultStatus)}</span></td>
+        <td>${renderStatusSelect(task)}</td>
         <td class="amount-cell">${formatAmount(task.grantAmount)}</td>
         <td class="notice-cell">${noticeCell}</td>
         <td><div class="row-actions"><button type="button" data-action="edit" data-id="${taskId}">수정</button><button type="button" data-action="delete" data-id="${taskId}">삭제</button></div></td>
@@ -365,6 +404,14 @@ function updateTaskNote(taskId, field, value) {
   saveTasks();
 }
 
+function updateTaskStatus(taskId, value) {
+  const resultStatus = normalizeStatus(value);
+  tasks = tasks.map((task) => task.id === taskId ? { ...task, resultStatus } : task);
+  saveTasks();
+  resetPagination();
+  render();
+}
+
 function exportCsv() {
   const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "내 비고", "채민강 비고"];
   const rows = tasks.map((task, index) => [index + 1, task.name, task.organizer, task.dueDate, task.submittedDate, task.resultStatus, task.originalResult, task.selectedStatus, task.grantAmount, task.noticeUrl, task.ownerNote, task.managerNote || task.notes]);
@@ -393,7 +440,13 @@ importSeedButton?.addEventListener("click", () => loadGoogleSheetSeed({ replace:
 importSheetButton?.addEventListener("click", () => loadGoogleSheetSeed({ replace: true }).catch((error) => { if (importMessage) importMessage.textContent = error.message; }));
 exportButton.addEventListener("click", exportCsv);
 searchInput.addEventListener("input", () => { resetPagination(); render(); });
-statusFilter.addEventListener("change", () => { resetPagination(); render(); });
+statusTabs?.addEventListener("click", (event) => {
+  const tab = event.target.closest("[data-status-view]");
+  if (!tab) return;
+  currentStatusView = STATUS_VIEWS.includes(tab.dataset.statusView) ? tab.dataset.statusView : "main";
+  resetPagination();
+  render();
+});
 pageSizeSelect?.addEventListener("change", () => { resetPagination(); render(); });
 prevPageButton?.addEventListener("click", () => { currentPage -= 1; render(); });
 nextPageButton?.addEventListener("click", () => { currentPage += 1; render(); });
@@ -402,6 +455,12 @@ taskTableBody.addEventListener("input", (event) => {
   const noteField = event.target.closest("[data-note-field]");
   if (!noteField) return;
   updateTaskNote(noteField.dataset.id, noteField.dataset.noteField, noteField.value);
+});
+
+taskTableBody.addEventListener("change", (event) => {
+  const statusSelect = event.target.closest("[data-status-id]");
+  if (!statusSelect) return;
+  updateTaskStatus(statusSelect.dataset.statusId, statusSelect.value);
 });
 
 taskTableBody.addEventListener("click", (event) => {

@@ -36,7 +36,7 @@ const canEditComment=c=>currentUser&&c.writer_email===currentUser.email;
 const canDeleteComment=()=>currentUser&&currentUser.email===ADMIN_EMAIL;
 const projectComments=id=>comments.filter(c=>c.project_id===id);
 const isRead=(commentId,email)=>reads.some(r=>r.comment_id===commentId&&r.reader_email===email);
-function openGovernmentBoard(){document.getElementById("governmentBoard").classList.add("open")}function closeGovernmentBoard(){document.getElementById("governmentBoard").classList.remove("open")}function commentParts(body){const lines=String(body||"").split("\n"),head=lines[0]||"";return /^\[(확인요망|받는 사람|확인완료)[:\]]/.test(head)?{prefix:head,text:lines.slice(1).join("\n")}:{prefix:"",text:String(body||"")}}
+function openGovernmentBoard(){window.location.assign("/workboard/government/")}function closeGovernmentBoard(){document.getElementById("governmentBoard").classList.remove("open")}function commentParts(body){const lines=String(body||"").split("\n"),head=lines[0]||"";return /^\[(확인요망|받는 사람|확인완료)[:\]]/.test(head)?{prefix:head,text:lines.slice(1).join("\n")}:{prefix:"",text:String(body||"")}}
 function normalRecipient(c){const m=String(c.body||"").match(/^\[받는 사람: ([^\]]+)\]/);return m?m[1].trim():"전체"}
 function confirmRequest(c){const m=String(c.body||"").match(/^\[확인요망:([^:\]]+):([^\]]+)\]/);return m?{id:m[1].trim(),target:m[2].trim()}:null}
 function confirmDone(c){const m=String(c.body||"").match(/^\[확인완료:([^\]]+)\]/);return m?m[1].trim():null}

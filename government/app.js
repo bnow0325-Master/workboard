@@ -303,7 +303,7 @@ async function createCloudSyncRecord(userEmail, content = stringifyCloudPayload(
       assignee_email: userEmail,
       created_by_email: userEmail,
       due_date: todayIsoDate(),
-      status: "보관",
+      status: "진행 중",
       content
     })
     .select("*")

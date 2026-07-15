@@ -53,6 +53,26 @@ function saveTasks() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
 }
 
+function readImportMeta() {
+  try {
+    const saved = localStorage.getItem(IMPORT_META_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveImportMeta(payload) {
+  localStorage.setItem(IMPORT_META_KEY, JSON.stringify({
+    version: payload.version,
+    importedAt: payload.importedAt,
+    sourceUrl: payload.sourceUrl,
+    sheetName: payload.sheetName,
+    gid: payload.gid,
+    rowCount: payload.rowCount
+  }));
+}
+
 function cleanTask(task) {
   const legacyNotes = String(task.notes || "").trim();
   const managerNote = String(task.managerNote ?? task.assigneeNote ?? legacyNotes).trim();
@@ -111,7 +131,7 @@ function normalizeStatus(value) {
   if (/합격|선정|완료|채택/.test(source)) return "합격";
   if (/제출|신청|접수/.test(source)) return "제출완료";
   if (/준비|예정/.test(source)) return "준비중";
-  return source || "검토중";
+  return "검토중";
 }
 
 function formatDate(value) {
@@ -315,16 +335,25 @@ async function loadGoogleSheetSeed({ replace = false } = {}) {
   }
 
   saveTasks();
-  localStorage.setItem(IMPORT_META_KEY, JSON.stringify({ version: payload.version, importedAt: payload.importedAt, sourceUrl: payload.sourceUrl, sheetName: payload.sheetName, gid: payload.gid, rowCount: payload.rowCount }));
+  saveImportMeta(payload);
   if (importMessage) importMessage.textContent = `구글시트 ${payload.rowCount}개 과제를 반영했습니다.`;
   render();
 }
 
 async function autoLoadGoogleSheetSeed() {
   try {
-    const meta = localStorage.getItem(IMPORT_META_KEY);
-    if (!meta || tasks.length === 0) await loadGoogleSheetSeed({ replace: true });
-    else render();
+    const response = await fetch(SEED_URL, { cache: "no-store" });
+    if (!response.ok) throw new Error("저장된 구글시트 데이터를 읽지 못했습니다.");
+    const payload = await response.json();
+    const meta = readImportMeta();
+
+    if (!meta || meta.version !== payload.version || tasks.length === 0) {
+      tasks = getPayloadTasks(payload).map(cleanTask);
+      saveTasks();
+      saveImportMeta(payload);
+      if (importMessage) importMessage.textContent = `기준 데이터 ${payload.rowCount}개 과제를 반영했습니다.`;
+    }
+    render();
   } catch (error) {
     if (importMessage) importMessage.textContent = error.message;
     render();

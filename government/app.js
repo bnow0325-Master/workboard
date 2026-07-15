@@ -5,7 +5,7 @@ const SUPABASE_URL = "https://lwwfzwdjaedrfckyduno.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
 const CLOUD_SYNC_PROJECT_TITLE = "__BNOW_GOVERNMENT_BOARD_SYNC__";
 const CLOUD_SYNC_SCHEMA = "government-tasks-v1";
-const CLOUD_POLL_INTERVAL = 8000;
+const CLOUD_POLL_INTERVAL = 3000;
 const STATUS_OPTIONS = ["준비중", "검토중", "제출완료", "합격", "불합격", "지원못함", "보류"];
 const MAIN_STATUS_OPTIONS = ["준비중", "검토중"];
 const STATUS_VIEWS = ["main", "제출완료", "합격", "불합격", "지원못함", "보류"];
@@ -49,11 +49,14 @@ let cloudSync = {
   db: null,
   ready: false,
   recordId: null,
+  userEmail: "",
   lastContent: "",
+  lastRemoteRecordId: "",
   saveTimer: null,
   saving: false,
   applyingRemote: false,
-  pollTimer: null
+  pollTimer: null,
+  channel: null
 };
 
 function loadTasks() {
@@ -244,6 +247,10 @@ function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function ownCloudSyncTitle(userEmail = cloudSync.userEmail) {
+  return `${CLOUD_SYNC_PROJECT_TITLE}:${String(userEmail || "").toLowerCase()}`;
+}
+
 function cloudPayload(contentTasks = tasks) {
   return {
     schema: CLOUD_SYNC_SCHEMA,
@@ -268,23 +275,31 @@ function parseCloudPayload(content) {
   return null;
 }
 
-async function findCloudSyncRecord() {
+function getCloudSavedAt(record) {
+  const parsed = parseCloudPayload(record?.content);
+  const savedAt = Date.parse(parsed?.savedAt || "");
+  return Number.isFinite(savedAt) ? savedAt : 0;
+}
+
+function pickLatestCloudRecord(records) {
+  return [...records].sort((a, b) => getCloudSavedAt(b) - getCloudSavedAt(a))[0] || null;
+}
+
+async function findCloudSyncRecords() {
   const response = await cloudSync.db
     .from("projects")
     .select("*")
-    .eq("title", CLOUD_SYNC_PROJECT_TITLE)
-    .limit(1);
+    .like("title", `${CLOUD_SYNC_PROJECT_TITLE}%`);
 
   if (response.error) throw response.error;
-  return response.data?.[0] || null;
+  return response.data || [];
 }
 
-async function createCloudSyncRecord(userEmail) {
-  const content = stringifyCloudPayload();
+async function createCloudSyncRecord(userEmail, content = stringifyCloudPayload()) {
   const response = await cloudSync.db
     .from("projects")
     .insert({
-      title: CLOUD_SYNC_PROJECT_TITLE,
+      title: ownCloudSyncTitle(userEmail),
       assignee_email: userEmail,
       created_by_email: userEmail,
       due_date: todayIsoDate(),
@@ -307,6 +322,7 @@ function applyCloudRecord(record) {
   saveTasks({ cloud: false });
   cloudSync.applyingRemote = false;
   cloudSync.lastContent = record.content || "";
+  cloudSync.lastRemoteRecordId = record.id || "";
   render();
   return true;
 }
@@ -343,12 +359,32 @@ async function pushCloudTasks() {
 
 async function pullCloudTasks() {
   if (!cloudSync.ready || cloudSync.saving) return;
-  const record = await findCloudSyncRecord();
-  if (!record || record.id !== cloudSync.recordId) return;
-  const nextContent = record.content || "";
+  const records = await findCloudSyncRecords();
+  const record = pickLatestCloudRecord(records);
+  const nextContent = record?.content || "";
   if (!nextContent || nextContent === cloudSync.lastContent) return;
   applyCloudRecord(record);
   setSyncStatus("동기화됨", "ok");
+}
+
+function startRealtimeSync() {
+  if (!cloudSync.db?.channel) return;
+  try {
+    cloudSync.channel?.unsubscribe?.();
+    cloudSync.channel = cloudSync.db
+      .channel("government-board-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "projects" }, (payload) => {
+        const title = payload.new?.title || payload.old?.title || "";
+        if (!String(title).startsWith(CLOUD_SYNC_PROJECT_TITLE)) return;
+        pullCloudTasks().catch((error) => {
+          setSyncStatus("동기화 확인 실패", "error");
+          console.error(error);
+        });
+      })
+      .subscribe();
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 async function initCloudSync() {
@@ -368,14 +404,25 @@ async function initCloudSync() {
     }
 
     setSyncStatus("동기화 연결 중", "pending");
-    let record = await findCloudSyncRecord();
-    if (!record) record = await createCloudSyncRecord(session.user.email);
+    cloudSync.userEmail = session.user.email.toLowerCase();
+    const records = await findCloudSyncRecords();
+    const latestRecord = pickLatestCloudRecord(records);
+    let ownRecord = records.find((record) => record.title === ownCloudSyncTitle(cloudSync.userEmail));
 
-    cloudSync.recordId = record.id;
+    if (!ownRecord) {
+      ownRecord = await createCloudSyncRecord(cloudSync.userEmail, latestRecord?.content || stringifyCloudPayload());
+    }
+
+    cloudSync.recordId = ownRecord.id;
     cloudSync.ready = true;
 
-    if (!applyCloudRecord(record)) await pushCloudTasks();
-    else setSyncStatus("동기화됨", "ok");
+    if (latestRecord) {
+      applyCloudRecord(latestRecord);
+      setSyncStatus("동기화됨", "ok");
+    } else {
+      cloudSync.lastContent = ownRecord.content || "";
+      await pushCloudTasks();
+    }
 
     window.clearInterval(cloudSync.pollTimer);
     cloudSync.pollTimer = window.setInterval(() => {
@@ -384,6 +431,7 @@ async function initCloudSync() {
         console.error(error);
       });
     }, CLOUD_POLL_INTERVAL);
+    startRealtimeSync();
   } catch (error) {
     setSyncStatus("로컬 저장", "error");
     console.error(error);

@@ -19,6 +19,7 @@ const SUPABASE_URL="https://lwwfzwdjaedrfckyduno.supabase.co";
 const SUPABASE_ANON_KEY="sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
 const db=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const ADMIN_EMAIL="elon.choo@bnow.co.kr";
+const GOVERNMENT_SYNC_PROJECT_TITLE="__BNOW_GOVERNMENT_BOARD_SYNC__";
 let currentUser=null,members=[],projects=[],comments=[],reads=[],activeProjectId=null,editingProjectId=null,workFilter="mine",listMode="active",assigneeFilter="all",showAssigneeFilters=false,projectSort={key:"status",dir:"asc"};
 const TEAM_ORDER=["최창혁","손근혁","채민강","이세언","박수민","추동현"];
 const $=id=>document.getElementById(id);
@@ -61,7 +62,7 @@ function setListMode(value){listMode=value;renderTables()}
 function toggleAssigneeFilters(){showAssigneeFilters=!showAssigneeFilters;renderTables()}
 function setAssigneeFilter(email){assigneeFilter=email;if(email!=="all")workFilter="all";renderTables()}
 async function loadMembers(){members=ok(await db.from("app_members").select("email,full_name,role,is_active").eq("is_active",true).order("full_name"))}
-async function loadData(){await loadMembers();projects=ok(await db.from("projects").select("*").order("due_date",{ascending:true}));comments=ok(await db.from("project_comments").select("*").order("created_at",{ascending:true}));reads=ok(await db.from("comment_reads").select("*"));if(activeProjectId&&!projectById(activeProjectId))activeProjectId=null;if(!activeProjectId&&projects.length)activeProjectId=projects.find(p=>!["완료","보관"].includes(p.status))?.id||projects[0].id}
+async function loadData(){await loadMembers();projects=ok(await db.from("projects").select("*").order("due_date",{ascending:true})).filter(p=>p.title!==GOVERNMENT_SYNC_PROJECT_TITLE);comments=ok(await db.from("project_comments").select("*").order("created_at",{ascending:true}));reads=ok(await db.from("comment_reads").select("*"));if(activeProjectId&&!projectById(activeProjectId))activeProjectId=null;if(!activeProjectId&&projects.length)activeProjectId=projects.find(p=>!["완료","보관"].includes(p.status))?.id||projects[0].id}
 function fillAssignees(){$("pAssignee").innerHTML=members.map(m=>`<option value="${h(m.email)}">${h(m.full_name)} (${h(m.email)})</option>`).join("")}
 function fillCommentRecipients(){const selectedProject=projectById(activeProjectId);const options=members.filter(m=>m.email!==currentUser.email).map(m=>`<option value="${h(m.full_name)}">${h(m.full_name)}</option>`);$("commentRecipient").innerHTML=options.join("")||'<option value="전체">전체</option>';if(selectedProject&&selectedProject.assignee_email!==currentUser.email){$("commentRecipient").value=assigneeName(selectedProject)}}
 async function refresh(){await loadData();fillAssignees();render()}

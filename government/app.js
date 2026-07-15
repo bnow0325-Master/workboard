@@ -1,6 +1,11 @@
 const STORAGE_KEY = "bnow.project-board.tasks";
 const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2";
 const SEED_URL = "data/google-sheet-tasks.json";
+const SUPABASE_URL = "https://lwwfzwdjaedrfckyduno.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
+const CLOUD_SYNC_PROJECT_TITLE = "__BNOW_GOVERNMENT_BOARD_SYNC__";
+const CLOUD_SYNC_SCHEMA = "government-tasks-v1";
+const CLOUD_POLL_INTERVAL = 8000;
 const STATUS_OPTIONS = ["준비중", "검토중", "제출완료", "합격", "불합격", "지원못함", "보류"];
 const MAIN_STATUS_OPTIONS = ["준비중", "검토중"];
 const STATUS_VIEWS = ["main", "제출완료", "합격", "불합격", "지원못함", "보류"];
@@ -20,6 +25,7 @@ const sheetPaste = document.querySelector("#sheetPaste");
 const importSheetButton = document.querySelector("#importSheetButton");
 const importPasteButton = document.querySelector("#importPasteButton");
 const importMessage = document.querySelector("#importMessage");
+const syncStatus = document.querySelector("#syncStatus");
 const searchInput = document.querySelector("#searchInput");
 const statusTabs = document.querySelector("#statusTabs");
 const pageSizeSelect = document.querySelector("#pageSizeSelect");
@@ -39,6 +45,16 @@ let tasks = loadTasks();
 let editingId = null;
 let currentPage = 1;
 let currentStatusView = "main";
+let cloudSync = {
+  db: null,
+  ready: false,
+  recordId: null,
+  lastContent: "",
+  saveTimer: null,
+  saving: false,
+  applyingRemote: false,
+  pollTimer: null
+};
 
 function loadTasks() {
   try {
@@ -49,8 +65,9 @@ function loadTasks() {
   }
 }
 
-function saveTasks() {
+function saveTasks({ cloud = true } = {}) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+  if (cloud) scheduleCloudSave();
 }
 
 function readImportMeta() {
@@ -215,6 +232,162 @@ function getStatusClass(status) {
 
 function resetPagination() {
   currentPage = 1;
+}
+
+function setSyncStatus(message, state = "local") {
+  if (!syncStatus) return;
+  syncStatus.textContent = message;
+  syncStatus.className = `sync-status sync-${state}`;
+}
+
+function todayIsoDate() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function cloudPayload(contentTasks = tasks) {
+  return {
+    schema: CLOUD_SYNC_SCHEMA,
+    savedAt: new Date().toISOString(),
+    baselineVersion: readImportMeta()?.version || "",
+    tasks: contentTasks.map(cleanTask)
+  };
+}
+
+function stringifyCloudPayload(contentTasks = tasks) {
+  return JSON.stringify(cloudPayload(contentTasks));
+}
+
+function parseCloudPayload(content) {
+  try {
+    const parsed = JSON.parse(content || "");
+    if (Array.isArray(parsed)) return { tasks: parsed };
+    if (parsed && Array.isArray(parsed.tasks)) return parsed;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+async function findCloudSyncRecord() {
+  const response = await cloudSync.db
+    .from("projects")
+    .select("*")
+    .eq("title", CLOUD_SYNC_PROJECT_TITLE)
+    .limit(1);
+
+  if (response.error) throw response.error;
+  return response.data?.[0] || null;
+}
+
+async function createCloudSyncRecord(userEmail) {
+  const content = stringifyCloudPayload();
+  const response = await cloudSync.db
+    .from("projects")
+    .insert({
+      title: CLOUD_SYNC_PROJECT_TITLE,
+      assignee_email: userEmail,
+      created_by_email: userEmail,
+      due_date: todayIsoDate(),
+      status: "보관",
+      content
+    })
+    .select("*")
+    .single();
+
+  if (response.error) throw response.error;
+  cloudSync.lastContent = content;
+  return response.data;
+}
+
+function applyCloudRecord(record) {
+  const parsed = parseCloudPayload(record?.content);
+  if (!parsed?.tasks?.length) return false;
+  cloudSync.applyingRemote = true;
+  tasks = parsed.tasks.map(cleanTask);
+  saveTasks({ cloud: false });
+  cloudSync.applyingRemote = false;
+  cloudSync.lastContent = record.content || "";
+  render();
+  return true;
+}
+
+function scheduleCloudSave() {
+  if (!cloudSync.ready || cloudSync.applyingRemote) return;
+  window.clearTimeout(cloudSync.saveTimer);
+  setSyncStatus("저장 대기", "pending");
+  cloudSync.saveTimer = window.setTimeout(() => {
+    pushCloudTasks().catch((error) => {
+      setSyncStatus("동기화 실패", "error");
+      console.error(error);
+    });
+  }, 650);
+}
+
+async function pushCloudTasks() {
+  if (!cloudSync.ready || !cloudSync.recordId || cloudSync.saving) return;
+  cloudSync.saving = true;
+  setSyncStatus("동기화 중", "pending");
+  const content = stringifyCloudPayload();
+  const response = await cloudSync.db
+    .from("projects")
+    .update({ content })
+    .eq("id", cloudSync.recordId)
+    .select("*")
+    .single();
+
+  cloudSync.saving = false;
+  if (response.error) throw response.error;
+  cloudSync.lastContent = response.data?.content || content;
+  setSyncStatus("동기화됨", "ok");
+}
+
+async function pullCloudTasks() {
+  if (!cloudSync.ready || cloudSync.saving) return;
+  const record = await findCloudSyncRecord();
+  if (!record || record.id !== cloudSync.recordId) return;
+  const nextContent = record.content || "";
+  if (!nextContent || nextContent === cloudSync.lastContent) return;
+  applyCloudRecord(record);
+  setSyncStatus("동기화됨", "ok");
+}
+
+async function initCloudSync() {
+  if (!window.supabase?.createClient) {
+    setSyncStatus("로컬 저장", "local");
+    return;
+  }
+
+  try {
+    cloudSync.db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const sessionResponse = await cloudSync.db.auth.getSession();
+    const session = sessionResponse.data?.session;
+
+    if (!session?.user?.email) {
+      setSyncStatus("로그인 필요", "warn");
+      return;
+    }
+
+    setSyncStatus("동기화 연결 중", "pending");
+    let record = await findCloudSyncRecord();
+    if (!record) record = await createCloudSyncRecord(session.user.email);
+
+    cloudSync.recordId = record.id;
+    cloudSync.ready = true;
+
+    if (!applyCloudRecord(record)) await pushCloudTasks();
+    else setSyncStatus("동기화됨", "ok");
+
+    window.clearInterval(cloudSync.pollTimer);
+    cloudSync.pollTimer = window.setInterval(() => {
+      pullCloudTasks().catch((error) => {
+        setSyncStatus("동기화 확인 실패", "error");
+        console.error(error);
+      });
+    }, CLOUD_POLL_INTERVAL);
+  } catch (error) {
+    setSyncStatus("로컬 저장", "error");
+    console.error(error);
+  }
 }
 
 function matchesStatusView(task, view) {
@@ -505,4 +678,9 @@ taskTableBody.addEventListener("click", (event) => {
   }
 });
 
-autoLoadGoogleSheetSeed();
+async function startApp() {
+  await autoLoadGoogleSheetSeed();
+  await initCloudSync();
+}
+
+startApp();

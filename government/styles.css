@@ -219,6 +219,38 @@ h2 {
   background: #111111;
 }
 
+.sync-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  border-radius: 999px;
+  padding: 0 11px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.sync-local {
+  background: #f0eff4;
+  color: #5c5870;
+}
+
+.sync-pending {
+  background: #fff5db;
+  color: #8a5a00;
+}
+
+.sync-ok {
+  background: #e8f6ed;
+  color: #19703a;
+}
+
+.sync-warn,
+.sync-error {
+  background: #fdecec;
+  color: var(--danger);
+}
+
 .ghost-button,
 .row-actions button {
   border: 1px solid var(--line);

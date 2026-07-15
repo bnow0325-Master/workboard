@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#12615d" />
     <link rel="manifest" href="manifest.json" />
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <title>BNOW 정부과제 워크보드</title>
   </head>
   <body>
@@ -16,6 +17,7 @@
           <h1>정부과제 워크보드</h1>
         </div>
         <div class="header-actions">
+          <span class="sync-status sync-local" id="syncStatus">로컬 저장</span>
           <button class="dashboard-button" type="button" onclick="window.location.href='/workboard/'">대시보드로 돌아가기</button>
           <button class="ghost-button" id="exportButton" type="button">CSV 내보내기</button>
         </div>

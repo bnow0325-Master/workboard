@@ -872,3 +872,269 @@ td strong {
     width: 100%;
   }
 }
+
+
+.toolbar-controls,
+.page-size-control,
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toolbar-controls {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.page-size-control span {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.page-size-control select,
+.pagination-controls .page-button {
+  min-height: 32px;
+}
+
+.pagination-controls #pageInfo {
+  min-width: 120px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.page-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.nav-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.recommendation-page {
+  display: grid;
+  gap: 14px;
+}
+
+.recommendation-panel,
+.recommendation-results {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  padding: 16px;
+  box-shadow: var(--shadow);
+}
+
+.recommendation-panel .panel-title-row,
+.recommendation-results .panel-title-row {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.recommendation-profile {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 10px;
+}
+
+.recommendation-profile label,
+.recommendation-profile-grid label {
+  display: grid;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.recommendation-profile input,
+.recommendation-profile-grid input,
+.recommendation-profile-grid textarea {
+  min-height: 40px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9fbf8;
+  padding: 0 12px;
+  color: var(--ink);
+}
+
+.recommendation-profile-grid textarea {
+  min-height: 120px;
+  padding-top: 10px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.recommendation-company-profile {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px;
+}
+
+.recommendation-company-profile summary {
+  cursor: pointer;
+  color: var(--brand-dark);
+  font-weight: 900;
+}
+
+.recommendation-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.recommendation-profile-grid .wide-field {
+  grid-column: 1 / -1;
+}
+
+.recommendation-logic-note,
+.recommendation-empty {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.recommendation-logic-note {
+  border-left: 3px solid var(--brand);
+  background: #f3f8f6;
+  padding: 10px 12px;
+  font-weight: 700;
+}
+
+.recommendation-list {
+  display: grid;
+  gap: 10px;
+}
+
+.recommendation-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f9fbf8;
+  padding: 12px;
+}
+
+.recommendation-score {
+  display: grid;
+  place-items: center;
+  min-height: 58px;
+  border-radius: 8px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.recommendation-score span {
+  display: block;
+  font-size: 11px;
+}
+
+.recommendation-body {
+  min-width: 0;
+}
+
+.recommendation-topline,
+.recommendation-reasons,
+.recommendation-actions,
+.recommendation-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  align-items: center;
+}
+
+.recommendation-topline {
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.recommendation-card h3 {
+  margin: 0 0 5px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+.recommendation-card p {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.recommendation-reasons span {
+  border: 1px solid #cfd9d4;
+  border-radius: 999px;
+  background: #ffffff;
+  padding: 4px 8px;
+  color: var(--brand-dark);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.recommendation-actions {
+  justify-content: flex-end;
+  min-width: 170px;
+}
+
+.recommendation-actions a {
+  color: var(--brand-dark);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.recommendation-actions button:disabled {
+  cursor: default;
+  opacity: 0.58;
+}
+
+@media (max-width: 720px) {
+  .toolbar-controls,
+  .page-size-control,
+  .pagination-controls {
+    width: 100%;
+  }
+
+  .toolbar-controls {
+    justify-content: stretch;
+  }
+
+  .page-size-control select,
+  .toolbar-controls select,
+  .pagination-controls .page-button {
+    flex: 1;
+  }
+
+  .recommendation-profile,
+  .recommendation-profile-grid,
+  .recommendation-card {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendation-panel .panel-title-row,
+  .recommendation-results .panel-title-row,
+  .recommendation-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .recommendation-score {
+    min-height: 44px;
+  }
+}

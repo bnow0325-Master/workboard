@@ -1,7 +1,12 @@
 const STORAGE_KEY = "bnow.project-board.tasks";
-const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2.v2";
+const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2";
+const SEED_URL = "data/google-sheet-tasks.json";
 const RECOMMENDATION_PROFILE_KEY = "bnow.project-board.recommendationProfile.v2";
 const RECOMMENDATION_API_URL = "https://bnow-assistant-sandy.vercel.app/api/government-notices";
+const SUPABASE_URL = "https://lwwfzwdjaedrfckyduno.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
+const CLOUD_SYNC_PROJECT_TITLE = "__BNOW_GOVERNMENT_BOARD_SYNC__";
+const CLOUD_SYNC_SCHEMA = "government-tasks-v1";
 
 let recommendedNotices = [];
 
@@ -90,6 +95,126 @@ function saveTasks(tasks) {
   if (!localStorage.getItem(IMPORT_META_KEY)) {
     localStorage.setItem(IMPORT_META_KEY, JSON.stringify({ importedAt: new Date().toISOString(), sourceUrl: "recommendations", rowCount: tasks.length }));
   }
+}
+
+async function ensureImportMeta() {
+  if (localStorage.getItem(IMPORT_META_KEY)) return;
+  try {
+    const response = await fetch(SEED_URL, { cache: "no-store" });
+    if (!response.ok) return;
+    const payload = await response.json();
+    localStorage.setItem(IMPORT_META_KEY, JSON.stringify({
+      version: payload.version,
+      importedAt: payload.importedAt || new Date().toISOString(),
+      sourceUrl: payload.sourceUrl,
+      sheetName: payload.sheetName,
+      gid: payload.gid,
+      rowCount: payload.rowCount
+    }));
+  } catch {
+    localStorage.setItem(IMPORT_META_KEY, JSON.stringify({ importedAt: new Date().toISOString(), sourceUrl: "recommendations", rowCount: loadTasks().length }));
+  }
+}
+
+function readImportMeta() {
+  try {
+    const saved = localStorage.getItem(IMPORT_META_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
+}
+
+function parseCloudPayload(content) {
+  try {
+    const parsed = JSON.parse(content || "");
+    if (Array.isArray(parsed)) return { tasks: parsed };
+    if (parsed && Array.isArray(parsed.tasks)) return parsed;
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function getCloudSavedAt(record) {
+  const parsed = parseCloudPayload(record?.content);
+  const savedAt = Date.parse(parsed?.savedAt || "");
+  return Number.isFinite(savedAt) ? savedAt : 0;
+}
+
+function pickLatestCloudRecord(records) {
+  return [...records].sort((a, b) => getCloudSavedAt(b) - getCloudSavedAt(a))[0] || null;
+}
+
+function ownCloudSyncTitle(userEmail) {
+  return `${CLOUD_SYNC_PROJECT_TITLE}:${String(userEmail || "").toLowerCase()}`;
+}
+
+function mergeTasks(primaryTasks, secondaryTasks) {
+  const merged = [];
+  const seen = new Set();
+  for (const task of [...primaryTasks, ...secondaryTasks].map(cleanTask)) {
+    const key = task.noticeUrl ? `url:${task.noticeUrl}` : `id:${task.id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(task);
+  }
+  return merged;
+}
+
+function stringifyCloudPayload(contentTasks) {
+  return JSON.stringify({
+    schema: CLOUD_SYNC_SCHEMA,
+    savedAt: new Date().toISOString(),
+    baselineVersion: readImportMeta()?.version || "",
+    tasks: contentTasks.map(cleanTask)
+  });
+}
+
+async function pushTasksToCloud(nextTasks) {
+  if (!window.supabase?.createClient) return false;
+  const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sessionResponse = await db.auth.getSession();
+  const userEmail = sessionResponse.data?.session?.user?.email?.toLowerCase();
+  if (!userEmail) return false;
+
+  const recordsResponse = await db
+    .from("projects")
+    .select("*")
+    .like("title", `${CLOUD_SYNC_PROJECT_TITLE}%`);
+  if (recordsResponse.error) throw recordsResponse.error;
+
+  const records = recordsResponse.data || [];
+  const latestRecord = pickLatestCloudRecord(records);
+  const remoteTasks = parseCloudPayload(latestRecord?.content)?.tasks || [];
+  const mergedTasks = mergeTasks(nextTasks, remoteTasks);
+  const content = stringifyCloudPayload(mergedTasks);
+  const ownRecord = records.find((record) => record.title === ownCloudSyncTitle(userEmail));
+
+  if (ownRecord) {
+    const updateResponse = await db
+      .from("projects")
+      .update({ content })
+      .eq("id", ownRecord.id)
+      .select("*")
+      .single();
+    if (updateResponse.error) throw updateResponse.error;
+  } else {
+    const insertResponse = await db
+      .from("projects")
+      .insert({
+        title: ownCloudSyncTitle(userEmail),
+        assignee_email: userEmail,
+        created_by_email: userEmail,
+        due_date: new Date().toISOString().slice(0, 10),
+        status: "진행 중",
+        content
+      });
+    if (insertResponse.error) throw insertResponse.error;
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedTasks));
+  return true;
 }
 
 function normalizeDate(value) {
@@ -216,12 +341,21 @@ function renderRecommendations(payload) {
   }).join("");
 }
 
-function approveRecommendation(id) {
+async function approveRecommendation(id) {
   const notice = recommendedNotices.find((item) => item.id === id);
   if (!notice) return;
   const tasks = loadTasks();
   if (tasks.some((task) => task.noticeUrl && task.noticeUrl === notice.noticeUrl)) return;
-  saveTasks([createTaskFromNotice(notice), ...tasks]);
+  const nextTasks = [createTaskFromNotice(notice), ...tasks];
+  await ensureImportMeta();
+  saveTasks(nextTasks);
+  try {
+    await pushTasksToCloud(nextTasks);
+  } catch (error) {
+    console.error(error);
+    $("recommendationMeta").textContent = "로컬에는 추가했지만 클라우드 동기화에 실패했습니다. 정부과제 리스트를 열어 동기화 상태를 확인해 주세요.";
+    return;
+  }
   renderRecommendations({ sources: [], notices: recommendedNotices });
   $("recommendationMeta").textContent = "정부과제 리스트에 추가했습니다. 정부과제 리스트 메뉴에서 확인할 수 있습니다.";
 }

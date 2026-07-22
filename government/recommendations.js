@@ -251,6 +251,7 @@ function cleanTask(task) {
     grantAmount: normalizeAmount(task.grantAmount),
     noticeUrl: String(task.noticeUrl || "").trim(),
     notes: String(task.notes || "").trim(),
+    description: String(task.description || "").trim(),
     source: task.source || "recommendation",
     createdAt: task.createdAt || new Date().toISOString()
   };
@@ -265,12 +266,14 @@ function createTaskFromNotice(notice) {
     dueDate: notice.dueDate,
     resultStatus: "검토중",
     noticeUrl: notice.noticeUrl,
-    notes: [
+    description: [
       `추천점수 ${notice.score}`,
       notice.source,
       notice.reasons?.join(" / "),
       notice.summary
     ].filter(Boolean).join(" | "),
+    notes: "",
+    managerNote: "",
     source: "recommendation"
   });
 }

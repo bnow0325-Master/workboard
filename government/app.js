@@ -95,7 +95,11 @@ function saveImportMeta(payload) {
 
 function cleanTask(task) {
   const legacyNotes = String(task.notes || "").trim();
-  const managerNote = String(task.managerNote ?? task.assigneeNote ?? legacyNotes).trim();
+  const isRecommended = task.source === "recommendation";
+  const rawManagerNote = String(task.managerNote ?? task.assigneeNote ?? "").trim();
+  const legacyRecommendationText = isRecommended && (legacyNotes.includes("추천점수") || rawManagerNote.includes("추천점수"));
+  const description = String(task.description || (legacyRecommendationText ? (legacyNotes || rawManagerNote) : "")).trim();
+  const managerNote = legacyRecommendationText && !task.description ? "" : String(task.managerNote ?? task.assigneeNote ?? (isRecommended ? "" : legacyNotes)).trim();
 
   return {
     id: task.id || makeId(task.name || "task"),
@@ -111,6 +115,7 @@ function cleanTask(task) {
     grantAmount: normalizeAmount(task.grantAmount),
     noticeUrl: String(task.noticeUrl || "").trim(),
     notes: legacyNotes || managerNote,
+    description,
     ownerNote: String(task.ownerNote ?? task.myNote ?? "").trim(),
     managerNote,
     source: task.source || "manual",
@@ -479,7 +484,7 @@ function render() {
   const filteredTasks = tasks
     .filter((task) => {
       const matchesStatus = matchesStatusView(task, status);
-      const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.ownerNote} ${task.managerNote} ${task.noticeUrl}`.toLowerCase();
+      const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.description} ${task.ownerNote} ${task.managerNote} ${task.noticeUrl}`.toLowerCase();
       return matchesStatus && haystack.includes(query);
     })
     .sort((a, b) => getDueTime(b) - getDueTime(a));
@@ -523,6 +528,7 @@ function render() {
         <td>
           <div class="task-title-wrap">
             <div class="task-name-line"><strong>${escapeHtml(task.name)}</strong>${urgencyBadge}</div>
+            ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ""}
             <div class="task-note-grid">
               <label class="task-note task-note-owner"><span>나의 의견</span><textarea data-note-field="ownerNote" data-id="${taskId}" placeholder="내가 볼 내용">${escapeHtml(task.ownerNote)}</textarea></label>
               <label class="task-note task-note-manager"><span>담당자 의견</span><textarea data-note-field="managerNote" data-id="${taskId}" placeholder="담당자 내용">${escapeHtml(task.managerNote)}</textarea></label>

@@ -513,6 +513,17 @@ td strong {
   max-width: 520px;
 }
 
+.task-description {
+  max-width: 680px;
+  border-left: 3px solid #97b9b4;
+  background: #f4faf8;
+  padding: 8px 10px;
+  color: #3d4c47;
+  font-size: 12px;
+  line-height: 1.55;
+  white-space: pre-line;
+}
+
 .urgency-badge {
   display: inline-flex;
   align-items: center;

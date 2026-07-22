@@ -530,8 +530,8 @@ function render() {
             <div class="task-name-line"><strong>${escapeHtml(task.name)}</strong>${urgencyBadge}</div>
             ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ""}
             <div class="task-note-grid">
-              <label class="task-note task-note-owner"><span>나의 의견</span><textarea data-note-field="ownerNote" data-id="${taskId}" placeholder="내가 볼 내용">${escapeHtml(task.ownerNote)}</textarea></label>
-              <label class="task-note task-note-manager"><span>담당자 의견</span><textarea data-note-field="managerNote" data-id="${taskId}" placeholder="담당자 내용">${escapeHtml(task.managerNote)}</textarea></label>
+              <label class="task-note task-note-owner"><span>대표</span><textarea data-note-field="ownerNote" data-id="${taskId}" placeholder="대표 메모">${escapeHtml(task.ownerNote)}</textarea></label>
+              <label class="task-note task-note-manager"><span>실무자</span><textarea data-note-field="managerNote" data-id="${taskId}" placeholder="실무자 메모">${escapeHtml(task.managerNote)}</textarea></label>
             </div>
           </div>
         </td>
@@ -669,7 +669,7 @@ function updateTaskStatus(taskId, value) {
 }
 
 function exportCsv() {
-  const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "나의 의견", "담당자 의견"];
+  const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "대표", "실무자"];
   const rows = tasks.map((task, index) => [index + 1, task.name, task.organizer, task.dueDate, task.submittedDate, task.resultStatus, task.originalResult, task.selectedStatus, task.grantAmount, task.noticeUrl, task.ownerNote, task.managerNote || task.notes]);
   const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
   const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });

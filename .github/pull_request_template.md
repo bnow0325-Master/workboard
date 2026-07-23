@@ -19,4 +19,6 @@
 
 - [ ] 관리자 권한에 미치는 영향을 확인함
 - [ ] Supabase RLS 정책 변경 필요 여부를 확인함
+- [ ] Supabase schema/RLS/trigger/function 변경은 `supabase/migrations` 또는 `supabase/functions`에 같이 반영함
+- [ ] 운영 DB 데이터, dump, 비밀키를 GitHub에 커밋하지 않음
 - [ ] 외부 URL·Webhook·토큰을 브라우저 코드에 추가하지 않음

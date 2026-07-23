@@ -26,33 +26,57 @@ jobs:
           python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
+          import re
 
-          path = Path("index.html")
-          if not path.exists():
-              raise SystemExit("index.html is missing")
+          html_paths = [Path("index.html"), Path("government/index.html"), Path("government/recommendations.html")]
+          required_paths = [Path("supabase/migrations"), Path("supabase/functions")]
 
-          text = path.read_text(encoding="utf-8")
           required = ["<!DOCTYPE html>", "<html", "</html>", "<script", "</script>"]
-          missing = [item for item in required if item.lower() not in text.lower()]
-          if missing:
-              raise SystemExit(f"Required HTML markers missing: {missing}")
+          missing_required_paths = [str(path) for path in required_paths if not path.exists()]
+          if missing_required_paths:
+              raise SystemExit(f"Required Supabase backup paths missing: {missing_required_paths}")
 
-          forbidden = [
-              "<<<<<<< ",
-              "=======\n",
-              ">>>>>>> ",
-              "service_role",
-              "BEGIN PRIVATE KEY",
-              "ghp_",
-              "xoxb-",
+          for path in html_paths:
+              if not path.exists():
+                  raise SystemExit(f"{path} is missing")
+
+              text = path.read_text(encoding="utf-8")
+              missing = [item for item in required if item.lower() not in text.lower()]
+              if missing:
+                  raise SystemExit(f"Required HTML markers missing in {path}: {missing}")
+
+              class StrictEnoughParser(HTMLParser):
+                  pass
+
+              StrictEnoughParser().feed(text)
+
+          secret_patterns = [
+              ("merge conflict start", re.compile(r"^<<<<<<< ", re.MULTILINE)),
+              ("merge conflict middle", re.compile(r"^=======$", re.MULTILINE)),
+              ("merge conflict end", re.compile(r"^>>>>>>> ", re.MULTILINE)),
+              ("private key", re.compile(r"BEGIN [A-Z ]*PRIVATE KEY")),
+              ("github classic token", re.compile(r"ghp_[A-Za-z0-9_]{20,}")),
+              ("github fine-grained token", re.compile(r"github_pat_[A-Za-z0-9_]{20,}")),
+              ("slack token", re.compile(r"xox[baprs]-[A-Za-z0-9-]+")),
+              ("supabase service role env", re.compile(r"SUPABASE_(?:SERVICE_)?ROLE", re.IGNORECASE)),
+              ("service role assignment", re.compile(r"service_role\s*[:=]", re.IGNORECASE)),
           ]
-          found = [item for item in forbidden if item in text]
-          if found:
-              raise SystemExit(f"Unsafe or unresolved markers found: {found}")
 
-          class StrictEnoughParser(HTMLParser):
-              pass
+          skip_dirs = {".git"}
+          for path in Path(".").rglob("*"):
+              if not path.is_file():
+                  continue
+              if any(part in skip_dirs for part in path.parts):
+                  continue
+              if path.stat().st_size > 500_000:
+                  continue
+              try:
+                  text = path.read_text(encoding="utf-8")
+              except UnicodeDecodeError:
+                  continue
+              for label, pattern in secret_patterns:
+                  if pattern.search(text):
+                      raise SystemExit(f"Unsafe marker found in {path}: {label}")
 
-          StrictEnoughParser().feed(text)
           print("Static validation passed")
           PY

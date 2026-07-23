@@ -26,6 +26,12 @@ python3 -m http.server 8000
 4. GitHub Actions의 정적 검증을 통과한 뒤 병합함.
 5. 상세 규칙은 `AGENTS.md`를 따름.
 
+## Supabase GitHub 백업
+
+Supabase 구조, RLS, 트리거, DB 함수, Edge Function 변경은 GitHub에도 같이 백업함. 관련 기준은 `docs/supabase-github-backup.md`와 `supabase/README.md`를 따름.
+
+운영 데이터와 비밀키는 공개 저장소에 평문으로 커밋하지 않음. 실제 프로젝트 데이터 백업이 필요하면 Supabase 백업 기능 또는 비공개/암호화 저장소를 사용함.
+
 ## 보안 주의사항
 
 이 저장소는 사내 인원과 업무정보를 다루므로 **비공개 저장소로 운영해야 함**.

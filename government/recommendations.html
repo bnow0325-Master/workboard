@@ -18,6 +18,7 @@
         <div class="header-actions">
           <a class="ghost-button nav-button" href="./">정부과제 리스트</a>
           <a class="ghost-button nav-button" href="../" target="_top">워크보드</a>
+          <button class="ghost-button" id="toggleSourceManagerButton" type="button" aria-expanded="false" aria-controls="sourceManagerPanel">정부과제검색사이트</button>
           <button class="primary-button" id="fetchRecommendationsButton" type="button">새로 추천받기</button>
         </div>
       </header>
@@ -57,6 +58,28 @@
         </div>
       </section>
 
+      <section class="source-manager-panel" id="sourceManagerPanel" aria-label="정부과제검색사이트" hidden>
+        <div class="panel-title-row">
+          <div>
+            <h2>정부과제검색사이트</h2>
+            <p class="helper-text">현재 추천 수집기가 검색하는 사이트 주소와 상태입니다.</p>
+          </div>
+          <button class="ghost-button" id="refreshSourceStatusButton" type="button">상태 확인</button>
+        </div>
+        <details class="source-add-panel">
+          <summary>사이트 추가하기</summary>
+          <div class="source-manager-form">
+            <label><span>사이트명</span><input id="sourceSiteName" type="text" placeholder="예: 지역 지원사업 포털" /></label>
+            <label><span>사이트주소</span><input id="sourceSiteUrl" type="url" placeholder="https://example.go.kr" /></label>
+            <label><span>메모</span><input id="sourceSiteMemo" type="text" placeholder="어떤 공고를 보고 싶은지" /></label>
+            <button class="primary-button" id="addSourceSiteButton" type="button">추가하기</button>
+          </div>
+        </details>
+        <div class="recommendation-logic-note">직접 추가한 사이트는 목록에 즉시 저장되고, 추천 수집 시 범용 HTML 수집을 시도합니다. 특수 구조 사이트는 전용 연결이 필요할 수 있습니다.</div>
+        <div class="recommendation-logic-note" id="sourceManagerMeta">아직 상태를 확인하지 않았습니다.</div>
+        <div class="source-manager-list" id="sourceManagerList"></div>
+      </section>
+
       <section class="recommendation-results" aria-label="추천 과제목록">
         <div class="panel-title-row">
           <h2>추천 과제목록</h2>
@@ -71,6 +94,6 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="recommendations.js?v=20260722-description"></script>
+    <script src="recommendations.js?v=20260724-source-sites"></script>
   </body>
 </html>

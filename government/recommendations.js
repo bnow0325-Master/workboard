@@ -2,6 +2,7 @@ const STORAGE_KEY = "bnow.project-board.tasks";
 const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2";
 const SEED_URL = "data/google-sheet-tasks.json";
 const RECOMMENDATION_PROFILE_KEY = "bnow.project-board.recommendationProfile.v2";
+const SOURCE_MANAGER_KEY = "bnow.project-board.sourceManager.v1";
 const RECOMMENDATION_API_URL = "https://bnow-assistant-sandy.vercel.app/api/government-notices";
 const SUPABASE_URL = "https://lwwfzwdjaedrfckyduno.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
@@ -9,6 +10,8 @@ const CLOUD_SYNC_PROJECT_TITLE = "__BNOW_GOVERNMENT_BOARD_SYNC__";
 const CLOUD_SYNC_SCHEMA = "government-tasks-v1";
 
 let recommendedNotices = [];
+let collectedSources = [];
+let customSourceSites = loadCustomSourceSites();
 
 const defaultProfile = {
   keywords: "스마트축산, 정밀축산, 축산 ICT, 애그테크, 동물 헬스케어, 애니멀 헬스, 가축 생체정보, 농축산 AI, 축산 IoT, 축산 빅데이터, 디지털 축산, 스마트팜, 동물복지, 생체데이터, 바이오데이터, 바이오센서, 체내 삽입형 센서, IoT 센서, LoRa, 저전력 통신, 게이트웨이, 임베디드, 펌웨어, 시계열 AI, 이상징후 탐지, 예측 AI, 엣지 AI, 클라우드 SaaS, 멀티모달 AI, CCTV AI, 열화상 분석, 기후테크, 저탄소 축산, 축산 탄소감축, 축산 메탄저감, 기술사업화, 제품고도화, 스케일업, 실증, 테스트베드, 시제품, 양산, 해외인증, 수출, 글로벌 PoC, ODA, 베트남, 일본, 동남아시아, 공공조달, 오픈이노베이션",
@@ -48,6 +51,148 @@ function loadRecommendationProfile() {
 
 function saveRecommendationProfile(profile) {
   localStorage.setItem(RECOMMENDATION_PROFILE_KEY, JSON.stringify(profile));
+}
+
+function isUrl(value) {
+  try {
+    new URL(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function loadCustomSourceSites() {
+  try {
+    const saved = localStorage.getItem(SOURCE_MANAGER_KEY);
+    return saved ? JSON.parse(saved).filter((site) => site && site.url) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveCustomSourceSites() {
+  localStorage.setItem(SOURCE_MANAGER_KEY, JSON.stringify(customSourceSites));
+}
+
+function getCustomSourcesForRequest() {
+  return customSourceSites.map((site) => ({
+    source: site.source,
+    url: site.url,
+    description: site.description
+  }));
+}
+
+function readCustomSourceSite() {
+  return {
+    source: $("sourceSiteName")?.value.trim() || "",
+    url: $("sourceSiteUrl")?.value.trim() || "",
+    description: $("sourceSiteMemo")?.value.trim() || ""
+  };
+}
+
+function clearCustomSourceForm() {
+  ["sourceSiteName", "sourceSiteUrl", "sourceSiteMemo"].forEach((id) => {
+    const input = $(id);
+    if (input) input.value = "";
+  });
+}
+
+function renderSourceManager(sources = collectedSources) {
+  const meta = $("sourceManagerMeta");
+  const list = $("sourceManagerList");
+  if (!meta || !list) return;
+
+  const connected = sources.filter((source) => !source.skipped);
+  const pending = sources.filter((source) => source.skipped);
+  meta.textContent = `연결 ${connected.length}개 / 확인 필요 ${pending.length}개 / 직접 추가 ${customSourceSites.length}개`;
+
+  const sourceCards = sources.map((source) => {
+    const isOk = !source.skipped && Number(source.count || 0) > 0;
+    const statusText = source.skipped ? source.reason || "수집기 연결 예정" : (isOk ? `${source.count}건 수집됨` : "응답 확인됨, 신규 공고 없음");
+    const statusClass = source.skipped ? "is-pending" : (isOk ? "is-ok" : "is-empty");
+    return `
+      <article class="source-site-card">
+        <div>
+          <strong>${escapeHtml(source.source)}</strong>
+          <small>${escapeHtml([source.category, source.description].filter(Boolean).join(" / "))}</small>
+          ${source.url ? `<a href="${escapeHtml(source.url)}" target="_blank" rel="noreferrer">${escapeHtml(source.url)}</a>` : ""}
+        </div>
+        <span class="source-status ${statusClass}">${escapeHtml(statusText)}</span>
+      </article>`;
+  });
+
+  const sourceUrls = new Set(sources.map((source) => source.url).filter(Boolean));
+  const customCards = customSourceSites.filter((site) => !sourceUrls.has(site.url)).map((site) => `
+    <article class="source-site-card">
+      <div>
+        <strong>${escapeHtml(site.source || "이름 없는 사이트")}</strong>
+        <small>${escapeHtml(site.description || "추가 요청 목록")}</small>
+        <a href="${escapeHtml(site.url)}" target="_blank" rel="noreferrer">${escapeHtml(site.url)}</a>
+      </div>
+      <span class="source-status is-pending">상태 확인 전</span>
+    </article>`);
+
+  list.innerHTML = sourceCards.concat(customCards).join("") || `<div class="recommendation-empty">아직 확인된 검색사이트가 없습니다. 상태 확인을 눌러 주세요.</div>`;
+}
+
+async function refreshSourceStatus() {
+  const button = $("refreshSourceStatusButton");
+  const meta = $("sourceManagerMeta");
+  if (button) {
+    button.disabled = true;
+    button.textContent = "확인 중";
+  }
+  if (meta) meta.textContent = "정부과제 검색사이트 상태를 확인하고 있습니다.";
+
+  try {
+    const response = await fetch(RECOMMENDATION_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...readRecommendationProfile(), limit: 10, customSources: getCustomSourcesForRequest() }),
+      cache: "no-store"
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "검색사이트 상태 확인에 실패했습니다.");
+    collectedSources = payload.sources || [];
+    renderSourceManager();
+  } catch (error) {
+    if (meta) meta.textContent = error.message;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent = "상태 확인";
+    }
+  }
+}
+
+function addCustomSourceSite() {
+  const site = readCustomSourceSite();
+  const meta = $("sourceManagerMeta");
+  if (!site.url || !isUrl(site.url)) {
+    if (meta) meta.textContent = "추가할 사이트 주소를 https:// 형식으로 입력해 주세요.";
+    return;
+  }
+
+  const parsedUrl = new URL(site.url);
+  const normalized = {
+    ...site,
+    source: site.source || parsedUrl.hostname,
+    url: parsedUrl.toString(),
+    addedAt: new Date().toISOString()
+  };
+  const exists = customSourceSites.some((item) => item.url === normalized.url)
+    || collectedSources.some((item) => item.url === normalized.url);
+  if (exists) {
+    if (meta) meta.textContent = "이미 목록에 있는 사이트입니다.";
+    return;
+  }
+
+  customSourceSites = [normalized, ...customSourceSites];
+  saveCustomSourceSites();
+  clearCustomSourceForm();
+  renderSourceManager();
+  if (meta) meta.textContent = "정부과제 검색사이트 목록에 추가했습니다. 상태 확인을 누르면 수집 가능 여부를 확인합니다.";
 }
 
 function setProfileForm(profile) {
@@ -282,7 +427,7 @@ async function fetchRecommendations() {
   const button = $("fetchRecommendationsButton");
   const meta = $("recommendationMeta");
   const list = $("recommendationList");
-  const profile = { ...readRecommendationProfile(), limit: 30 };
+  const profile = { ...readRecommendationProfile(), limit: 30, customSources: getCustomSourcesForRequest() };
   saveRecommendationProfile(profile);
 
   button.disabled = true;
@@ -312,6 +457,8 @@ async function fetchRecommendations() {
 
 function renderRecommendations(payload) {
   const tasks = loadTasks();
+  collectedSources = payload.sources || collectedSources;
+  renderSourceManager();
   const sources = (payload.sources || [])
     .map((source) => source.skipped ? `${source.source}: 건너뜀(${source.reason})` : `${source.source}: ${source.count}건`)
     .join(" / ");
@@ -366,6 +513,20 @@ async function approveRecommendation(id) {
 document.addEventListener("DOMContentLoaded", () => {
   setProfileForm(loadRecommendationProfile());
   $("fetchRecommendationsButton").addEventListener("click", fetchRecommendations);
+  $("toggleSourceManagerButton").addEventListener("click", () => {
+    const panel = $("sourceManagerPanel");
+    const toggle = $("toggleSourceManagerButton");
+    const willOpen = panel.hidden;
+    panel.hidden = !willOpen;
+    toggle.setAttribute("aria-expanded", String(willOpen));
+    toggle.textContent = willOpen ? "검색사이트 닫기" : "정부과제검색사이트";
+    if (willOpen) {
+      renderSourceManager();
+      if (!collectedSources.length) refreshSourceStatus();
+    }
+  });
+  $("refreshSourceStatusButton").addEventListener("click", refreshSourceStatus);
+  $("addSourceSiteButton").addEventListener("click", addCustomSourceSite);
   $("saveRecommendationProfileButton").addEventListener("click", () => {
     saveRecommendationProfile(readRecommendationProfile());
     $("recommendationMeta").textContent = "회사정보를 저장했습니다. 새로 추천받기를 누르면 반영됩니다.";

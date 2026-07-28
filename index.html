@@ -89,7 +89,7 @@ const DEFAULT_IDPW_ENTRIES=[
 {siteName:"API",siteUrl:"",loginId:"livecare153",loginPw:"livecare*153",note:""}
 ];
 let currentUser=null,members=[],projects=[],comments=[],reads=[],activeProjectId=null,editingProjectId=null,editingIdPwId=null,workFilter="mine",listMode="active",assigneeFilter="all",showAssigneeFilters=false,projectSort={key:"status",dir:"asc"},idPwProjectRow=null,idPwEntries=[],idPwSearchTerm="";
-const TEAM_ORDER=["최창혁","손근혁","채민강","이세언","박수민","추동현"];
+const TEAM_ORDER=["최창혁","손근혁","채민강","Wei","박수민","추동현"];
 const $=id=>document.getElementById(id);
 const h=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c]));
 const ok=r=>{if(r.error)throw r.error;return r.data};

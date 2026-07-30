@@ -3,6 +3,7 @@ const IMPORT_META_KEY = "bnow.project-board.googleSheetImport.2026h2";
 const SEED_URL = "data/google-sheet-tasks.json";
 const RECOMMENDATION_PROFILE_KEY = "bnow.project-board.recommendationProfile.v2";
 const SOURCE_MANAGER_KEY = "bnow.project-board.sourceManager.v1";
+const REJECTED_RECOMMENDATION_KEY = "bnow.project-board.rejectedRecommendations.v1";
 const RECOMMENDATION_API_URL = "https://bnow-assistant-sandy.vercel.app/api/government-notices";
 const SUPABASE_URL = "https://lwwfzwdjaedrfckyduno.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
@@ -12,9 +13,11 @@ const CLOUD_SYNC_SCHEMA = "government-tasks-v1";
 let recommendedNotices = [];
 let collectedSources = [];
 let customSourceSites = loadCustomSourceSites();
+let rejectedRecommendationKeys = loadRejectedRecommendationKeys();
+let lastFetchedRecommendationCount = 0;
 
 const defaultProfile = {
-  keywords: "스마트축산, 정밀축산, 축산 ICT, 애그테크, 동물 헬스케어, 애니멀 헬스, 가축 생체정보, 농축산 AI, 축산 IoT, 축산 빅데이터, 디지털 축산, 스마트팜, 동물복지, 생체데이터, 바이오데이터, 바이오센서, 체내 삽입형 센서, IoT 센서, LoRa, 저전력 통신, 게이트웨이, 임베디드, 펌웨어, 시계열 AI, 이상징후 탐지, 예측 AI, 엣지 AI, 클라우드 SaaS, 멀티모달 AI, CCTV AI, 열화상 분석, 기후테크, 저탄소 축산, 축산 탄소감축, 축산 메탄저감, 기술사업화, 제품고도화, 스케일업, 실증, 테스트베드, 시제품, 양산, 해외인증, 수출, 글로벌 PoC, ODA, 베트남, 일본, 동남아시아, 공공조달, 오픈이노베이션",
+  keywords: "스마트축산, 정밀축산, 축산 ICT, 애그테크, 동물 헬스케어, 애니멀 헬스, 가축 생체정보, 농축산 AI, 축산 IoT, 축산 빅데이터, 디지털 축산, 스마트팜, 동물복지, 생체데이터, 바이오데이터, 바이오센서, 체내 삽입형 센서, IoT 센서, LoRa, 저전력 통신, 게이트웨이, 임베디드, 펌웨어, 시계열 AI, 이상징후 탐지, 예측 AI, 엣지 AI, 클라우드 SaaS, 멀티모달 AI, CCTV AI, 열화상 분석, 기후테크, 저탄소 축산, 축산 탄소감축, 축산 메탄저감, 기술사업화, 제품고도화, 스케일업, 실증, 테스트베드, 시제품, 양산, 해외인증, 수출, 글로벌 PoC, ODA, 베트남, 일본, 동남아시아, 공공조달, 오픈이노베이션, IP, 지식재산, 지재권, 특허, 상표, 디자인권, 국내출원, 해외출원, IP스타기업, 지식재산 긴급지원, 기술보호, 바우처, 바우쳐, 데이터바우처, AI바우처, 클라우드바우처, 수출바우처, 혁신바우처, 기술보호 바우처, AX 바우처, AX 원스톱",
   regions: "전국, 서울, 경기, 인천, 대전, 강원, 충북, 충남, 경북, 경남, 전북, 전남, 제주, 베트남, 일본, 동남아시아",
   targets: "법인, 스타트업, 중소기업, 창업기업, 벤처기업, 일반기업, 3년 이내, 5년 이내, 7년 이내",
   companySummary: "주식회사 비노우(BNOW)는 Biodata NOW를 의미하며, 동물의 체내 생체데이터를 실시간으로 수집·분석하여 건강과 생산성을 예측하는 AI 기업입니다. 2024년 3월 25일 설립되었고, 소 대상 LiveCow를 시작으로 LivePig, LiveDog 등 Live X Project로 축종을 확장하려는 동물 헬스케어 AI/스마트축산 데이터 기업입니다.",
@@ -25,7 +28,7 @@ const defaultProfile = {
   revenueRange: "2025년 매출 약 2억원, 2026년 목표 약 10억원, 제품 상용화 및 국내 매출 발생, 해외 실증·시장 확장 단계",
   certifications: "특허, 상표권, 기업부설연구소, 연구개발전담부서, 벤처기업확인서, 이노비즈, 메인비즈, 직접생산확인, ISO, 시험성적서, 베트남 MIC, 중국 SRRC 등은 확인 필요",
   previousProjects: "KOICA CTS Seed 1 베트남 실증, ICT 스마트팜 국가표준화 관련 사업, 강원도 바이오헬스케어 브릿지 ABC 기업 지원, 신한 Social Open Innovation 베트남 돼지 실증, H-온드림 스타트업 그라운드 13기, 국내외 액셀러레이팅·투자상담·전시·해외진출 프로그램",
-  preferredPrograms: "스마트축산·정밀축산·농축산 ICT 기술개발, 동물 헬스케어 AI 기술개발, 체내 바이오센서·IoT 디바이스·임베디드 펌웨어 고도화, AI 시계열 분석, 이상징후 탐지, 축산 데이터 표준화, 국내 농장 실증, 테스트베드, 공공조달, 제품 양산, 원가절감, 신뢰성 검증, 기후테크, 탄소중립, 축산 메탄저감, AI·빅데이터·클라우드·SaaS 사업화, 바이오헬스, 동물용 의료기기, 해외 PoC, 현지화, 수출, 글로벌 액셀러레이팅, 해외규격 인증, KOICA, ODA, 오픈이노베이션, 투자유치, 스케일업, 정책금융",
+  preferredPrograms: "스마트축산·정밀축산·농축산 ICT 기술개발, 동물 헬스케어 AI 기술개발, 체내 바이오센서·IoT 디바이스·임베디드 펌웨어 고도화, AI 시계열 분석, 이상징후 탐지, 축산 데이터 표준화, 국내 농장 실증, 테스트베드, 공공조달, 제품 양산, 원가절감, 신뢰성 검증, 기후테크, 탄소중립, 축산 메탄저감, AI·빅데이터·클라우드·SaaS 사업화, 바이오헬스, 동물용 의료기기, 해외 PoC, 현지화, 수출, 글로벌 액셀러레이팅, 해외규격 인증, KOICA, ODA, 오픈이노베이션, 투자유치, 스케일업, 정책금융, 지식재산 긴급지원, IP스타기업, 국내외 특허·상표·디자인 출원, 수출바우처, 데이터바우처, AI바우처, 클라우드바우처, 혁신바우처, 기술보호 바우처",
   avoidKeywords: "예비창업자만, 사업자등록 전, 개인사업자만, 법인 불가, 작물, 원예, 수산 전용, 사람 대상 의약품, 임상, 의료기기만, 식품 제조, 외식업, 단순 교육, 단순 행사, 과도한 자부담, 본사 이전, 공장 이전, 특정 협회 회원만, 대기업만, 중견기업만, 채용, 예술, 관광"
 };
 
@@ -74,6 +77,27 @@ function loadCustomSourceSites() {
 
 function saveCustomSourceSites() {
   localStorage.setItem(SOURCE_MANAGER_KEY, JSON.stringify(customSourceSites));
+}
+
+function loadRejectedRecommendationKeys() {
+  try {
+    const saved = localStorage.getItem(REJECTED_RECOMMENDATION_KEY);
+    return new Set(saved ? JSON.parse(saved) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveRejectedRecommendationKeys() {
+  localStorage.setItem(REJECTED_RECOMMENDATION_KEY, JSON.stringify([...rejectedRecommendationKeys]));
+}
+
+function getRecommendationRejectKey(notice) {
+  return notice.noticeUrl || `${notice.source || ""}:${notice.title || notice.id || ""}`;
+}
+
+function isRejectedRecommendation(notice) {
+  return rejectedRecommendationKeys.has(getRecommendationRejectKey(notice));
 }
 
 function getCustomSourcesForRequest() {
@@ -448,7 +472,9 @@ async function fetchRecommendations() {
     });
     const payload = await response.json();
     if (!response.ok) throw new Error(payload.error || "추천 공고를 가져오지 못했습니다.");
-    recommendedNotices = payload.notices || [];
+    const fetchedNotices = payload.notices || [];
+    lastFetchedRecommendationCount = fetchedNotices.length;
+    recommendedNotices = fetchedNotices.filter((notice) => !isRejectedRecommendation(notice));
     renderRecommendations(payload);
   } catch (error) {
     meta.textContent = error.message;
@@ -467,7 +493,9 @@ function renderRecommendations(payload) {
   const sources = (payload.sources || [])
     .map((source) => source.skipped ? `${source.source}: 건너뜀(${source.reason})` : `${source.source}: ${source.count}건`)
     .join(" / ");
-  $("recommendationMeta").textContent = `${recommendedNotices.length}개 추천. 적합 ${fit.fit || 0} / 확인필요 ${fit.maybe || 0} / 부적합 ${fit.no || 0}. ${sources}`;
+  const rejectedCount = Math.max(0, lastFetchedRecommendationCount - recommendedNotices.length);
+  const rejectedText = rejectedCount ? ` / 추천제외 ${rejectedCount}개 숨김` : "";
+  $("recommendationMeta").textContent = `${recommendedNotices.length}개 추천${rejectedText}. 적합 ${fit.fit || 0} / 확인필요 ${fit.maybe || 0} / 부적합 ${fit.no || 0}. ${sources}`;
 
   if (!recommendedNotices.length) {
     $("recommendationList").innerHTML = `<div class="recommendation-empty">추천할 공고가 없습니다. 검색조건을 넓혀 다시 추천받아 주세요.</div>`;
@@ -494,10 +522,27 @@ function renderRecommendations(payload) {
         </div>
         <div class="recommendation-actions">
           <a href="${escapeHtml(notice.noticeUrl)}" target="_blank" rel="noreferrer">공고 열기</a>
+          <button class="ghost-button reject-button" type="button" data-action="reject-notice" data-id="${escapeHtml(notice.id)}">추천제외</button>
           <button class="ghost-button" type="button" data-action="approve-notice" data-id="${escapeHtml(notice.id)}" ${exists ? "disabled" : ""}>${exists ? "추가됨" : "정부과제 리스트에 추가"}</button>
         </div>
       </article>`;
   }).join("");
+}
+
+function rejectRecommendation(id) {
+  const notice = recommendedNotices.find((item) => item.id === id);
+  if (!notice) return;
+  rejectedRecommendationKeys.add(getRecommendationRejectKey(notice));
+  saveRejectedRecommendationKeys();
+  recommendedNotices = recommendedNotices.filter((item) => item.id !== id);
+  renderRecommendations({ sources: collectedSources, eligibilitySummary: {} });
+  $("recommendationMeta").textContent = "추천에서 제외했습니다. 새로 추천받기를 눌러도 이 공고는 숨겨집니다.";
+}
+
+function clearRejectedRecommendations() {
+  rejectedRecommendationKeys = new Set();
+  saveRejectedRecommendationKeys();
+  $("recommendationMeta").textContent = "추천제외 목록을 초기화했습니다. 새로 추천받기를 누르면 다시 표시됩니다.";
 }
 
 async function approveRecommendation(id) {
@@ -536,13 +581,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   $("refreshSourceStatusButton").addEventListener("click", refreshSourceStatus);
   $("addSourceSiteButton").addEventListener("click", addCustomSourceSite);
+  $("clearRejectedRecommendationsButton").addEventListener("click", clearRejectedRecommendations);
   $("saveRecommendationProfileButton").addEventListener("click", () => {
     saveRecommendationProfile(readRecommendationProfile());
     $("recommendationMeta").textContent = "회사정보를 저장했습니다. 새로 추천받기를 누르면 반영됩니다.";
   });
   $("recommendationList").addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-action='approve-notice']");
-    if (!button) return;
-    approveRecommendation(button.dataset.id);
+    const rejectButton = event.target.closest("button[data-action='reject-notice']");
+    if (rejectButton) {
+      rejectRecommendation(rejectButton.dataset.id);
+      return;
+    }
+    const approveButton = event.target.closest("button[data-action='approve-notice']");
+    if (!approveButton) return;
+    approveRecommendation(approveButton.dataset.id);
   });
 });

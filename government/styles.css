@@ -1176,6 +1176,15 @@ td strong {
   opacity: 0.58;
 }
 
+.recommendation-actions .reject-button {
+  border-color: #d8b8b8;
+  color: #9b2f2f;
+}
+
+.recommendation-actions .reject-button:hover {
+  background: #fff5f5;
+}
+
 .source-add-panel {
   border: 1px solid var(--line);
   border-radius: 8px;

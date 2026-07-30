@@ -21,6 +21,7 @@ const defaultProfile = {
   products: "LiveCow, LivePig, LiveDog, Live X Project, 소 체내 삽입형 바이오센서, 심부체온, 활동량, LoRa 게이트웨이, 클라우드 AI, 발정 예측, 질병 조기예측, 분만 예측, 농장 모니터링, 개체별 생체데이터 분석, AI 알림 구독, 축산 데이터 플랫폼, CCTV·열화상·활동량·체온 멀티모달 분석",
   foundedYear: "2024",
   employeeCount: "",
+  representativeAge: "",
   revenueRange: "2025년 매출 약 2억원, 2026년 목표 약 10억원, 제품 상용화 및 국내 매출 발생, 해외 실증·시장 확장 단계",
   certifications: "특허, 상표권, 기업부설연구소, 연구개발전담부서, 벤처기업확인서, 이노비즈, 메인비즈, 직접생산확인, ISO, 시험성적서, 베트남 MIC, 중국 SRRC 등은 확인 필요",
   previousProjects: "KOICA CTS Seed 1 베트남 실증, ICT 스마트팜 국가표준화 관련 사업, 강원도 바이오헬스케어 브릿지 ABC 기업 지원, 신한 Social Open Innovation 베트남 돼지 실증, H-온드림 스타트업 그라운드 13기, 국내외 액셀러레이팅·투자상담·전시·해외진출 프로그램",
@@ -203,6 +204,7 @@ function setProfileForm(profile) {
   $("recommendationProducts").value = profile.products || "";
   $("recommendationFoundedYear").value = profile.foundedYear || "";
   $("recommendationEmployeeCount").value = profile.employeeCount || "";
+  $("recommendationRepresentativeAge").value = profile.representativeAge || "";
   $("recommendationRevenueRange").value = profile.revenueRange || "";
   $("recommendationCertifications").value = profile.certifications || "";
   $("recommendationPreviousProjects").value = profile.previousProjects || "";
@@ -219,6 +221,7 @@ function readRecommendationProfile() {
     products: $("recommendationProducts").value,
     foundedYear: $("recommendationFoundedYear").value,
     employeeCount: $("recommendationEmployeeCount").value,
+    representativeAge: $("recommendationRepresentativeAge").value,
     revenueRange: $("recommendationRevenueRange").value,
     certifications: $("recommendationCertifications").value,
     previousProjects: $("recommendationPreviousProjects").value,
@@ -413,8 +416,9 @@ function createTaskFromNotice(notice) {
     noticeUrl: notice.noticeUrl,
     description: [
       `추천점수 ${notice.score}`,
+      notice.fitLabel ? `자격판정 ${notice.fitLabel}` : "",
       notice.source,
-      notice.reasons?.join(" / "),
+      (notice.fitReasons?.length ? notice.fitReasons : notice.reasons)?.join(" / "),
       notice.summary
     ].filter(Boolean).join(" | "),
     notes: "",
@@ -459,10 +463,11 @@ function renderRecommendations(payload) {
   const tasks = loadTasks();
   collectedSources = payload.sources || collectedSources;
   renderSourceManager();
+  const fit = payload.eligibilitySummary || {};
   const sources = (payload.sources || [])
     .map((source) => source.skipped ? `${source.source}: 건너뜀(${source.reason})` : `${source.source}: ${source.count}건`)
     .join(" / ");
-  $("recommendationMeta").textContent = `${recommendedNotices.length}개 추천. ${sources}`;
+  $("recommendationMeta").textContent = `${recommendedNotices.length}개 추천. 적합 ${fit.fit || 0} / 확인필요 ${fit.maybe || 0} / 부적합 ${fit.no || 0}. ${sources}`;
 
   if (!recommendedNotices.length) {
     $("recommendationList").innerHTML = `<div class="recommendation-empty">추천할 공고가 없습니다. 검색조건을 넓혀 다시 추천받아 주세요.</div>`;
@@ -471,17 +476,21 @@ function renderRecommendations(payload) {
 
   $("recommendationList").innerHTML = recommendedNotices.map((notice) => {
     const exists = tasks.some((task) => task.noticeUrl && task.noticeUrl === notice.noticeUrl);
+    const fitStatus = notice.fitStatus || "maybe";
+    const fitLabel = notice.fitLabel || "확인필요";
+    const fitReasons = notice.fitReasons?.length ? notice.fitReasons : notice.reasons || [];
     return `
-      <article class="recommendation-card">
-        <div class="recommendation-score">${notice.score}<span>점</span></div>
+      <article class="recommendation-card recommendation-${escapeHtml(fitStatus)}">
+        <div class="recommendation-score">${notice.fitScore || notice.score}<span>${escapeHtml(fitLabel)}</span></div>
         <div class="recommendation-body">
           <div class="recommendation-topline">
+            <span class="fit-badge fit-${escapeHtml(fitStatus)}">${escapeHtml(fitLabel)}</span>
             <span>${escapeHtml(notice.source)}</span>
             <span>${escapeHtml([notice.region, notice.category, notice.support].filter(Boolean).join(" / "))}</span>
           </div>
           <h3>${escapeHtml(notice.title)}</h3>
           <p>${escapeHtml(notice.summary || notice.organizer || "").slice(0, 220)}</p>
-          <div class="recommendation-reasons">${(notice.reasons || []).map((reason) => `<span>${escapeHtml(reason)}</span>`).join("")}</div>
+          <div class="recommendation-reasons">${fitReasons.map((reason) => `<span>${escapeHtml(reason)}</span>`).join("")}</div>
         </div>
         <div class="recommendation-actions">
           <a href="${escapeHtml(notice.noticeUrl)}" target="_blank" rel="noreferrer">공고 열기</a>

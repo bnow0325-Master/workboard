@@ -190,6 +190,16 @@ function getDueTime(task) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
+function compareTasksByDueUrgency(a, b) {
+  const leftA = daysUntil(a.dueDate);
+  const leftB = daysUntil(b.dueDate);
+  const bucketA = leftA === null ? 2 : leftA < 0 ? 3 : 0;
+  const bucketB = leftB === null ? 2 : leftB < 0 ? 3 : 0;
+  if (bucketA !== bucketB) return bucketA - bucketB;
+  if (leftA !== null && leftB !== null && leftA !== leftB) return leftA - leftB;
+  return getDueTime(a) - getDueTime(b);
+}
+
 function getDueLabel(task) {
   const left = daysUntil(task.dueDate);
   if (left === null) return "";
@@ -487,7 +497,7 @@ function render() {
       const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.description} ${task.ownerNote} ${task.managerNote} ${task.noticeUrl}`.toLowerCase();
       return matchesStatus && haystack.includes(query);
     })
-    .sort((a, b) => getDueTime(b) - getDueTime(a));
+    .sort(compareTasksByDueUrgency);
 
   const pageSize = Number(pageSizeSelect?.value || 20);
   const totalPages = Math.max(1, Math.ceil(filteredTasks.length / pageSize));

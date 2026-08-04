@@ -47,3 +47,14 @@ Supabase 구조, RLS, 트리거, DB 함수, Edge Function 변경은 GitHub에도
 - Supabase 접근 모듈 분리
 - 관리자 권한과 알림 전송을 서버 API로 이동
 - 테스트 가능한 모듈 구조로 전환
+
+## 자체 호스팅
+
+운영 주소는 `https://main.bnow.co.kr/`이며 `1-ubuntu`의 호스트 Nginx가 정적 파일을 제공합니다.
+
+- Nginx 설정: `deploy/nginx/main.bnow.co.kr.conf`
+- 배포 스크립트: `deploy/server-deploy.sh`
+- 릴리스 경로: `/srv/workboard/releases/<commit>`
+- 현재 릴리스 링크: `/srv/workboard/current`
+
+배포 시 전체 저장소를 웹 루트로 복사하지 않고 `index.html`과 `government/`만 배포합니다.

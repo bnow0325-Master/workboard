@@ -29,7 +29,12 @@ jobs:
           import re
 
           html_paths = [Path("index.html"), Path("government/index.html"), Path("government/recommendations.html")]
-          required_paths = [Path("supabase/migrations"), Path("supabase/functions")]
+          required_paths = [
+              Path("favicon.svg"),
+              Path("vendor/supabase-js.min.js"),
+              Path("supabase/migrations"),
+              Path("supabase/functions"),
+          ]
 
           required = ["<!DOCTYPE html>", "<html", "</html>", "<script", "</script>"]
           missing_required_paths = [str(path) for path in required_paths if not path.exists()]

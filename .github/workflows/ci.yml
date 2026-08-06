@@ -30,7 +30,7 @@ jobs:
 
           html_paths = [Path("index.html"), Path("government/index.html"), Path("government/recommendations.html")]
           required_paths = [
-              Path("favicon.svg"),
+              Path("favicon.png"),
               Path("vendor/supabase-js.min.js"),
               Path("supabase/migrations"),
               Path("supabase/functions"),

@@ -6,6 +6,7 @@
 
 - `migrations/`: 테이블, 컬럼, 인덱스, RLS 정책, 트리거, DB 함수 변경 이력
 - `functions/`: Supabase Edge Function 코드
+- `migrations/20260806000100_schedule_government_deadline_digest.sql`: 매일 오전 9시 채민강에게 정부과제 만기 요약을 보내는 Cron 작업
 
 ## 운영 규칙
 

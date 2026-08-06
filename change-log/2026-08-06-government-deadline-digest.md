@@ -15,6 +15,9 @@
 - 발송 함수: `public.send_government_deadline_digest(date, boolean)`
 - 실행 이력: `public.government_deadline_digest_runs`
 - 잔디 전송: 기존 `notify-jandi` Edge Function과 `JANDI_WEBHOOK_CHAE_MINKANG` 비밀값 재사용
+- 함수 호출 인증: Supabase Vault의 `workboard_publishable_key`를 `apikey`와 `Authorization` 헤더에 사용
+
+2026-08-06 운영 강제 테스트에서 대상 과제 4건을 집계했고 `notify-jandi`가 HTTP 200과 `{"ok":true}`를 반환했다.
 
 강제 재시험이 필요하면 Supabase SQL Editor에서 아래를 실행한다.
 

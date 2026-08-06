@@ -515,6 +515,9 @@ td strong {
 
 .task-description {
   max-width: 680px;
+  max-height: calc((1.55em * 5) + 16px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
   border-left: 3px solid #97b9b4;
   background: #f4faf8;
   padding: 8px 10px;

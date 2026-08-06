@@ -184,7 +184,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeProjectModal()
 (async()=>{const{data}=await db.auth.getSession();if(data.session)await loadSignedInUser()})();
 </script>
 <script>
-function openSalesBoard(){const target=location.protocol==="file:"?"../sales/index.html":"https://bnow0325-master.github.io/Sales/";window.location.assign(target)}
+function openSalesBoard(){const target=location.protocol==="file:"?"../sales/index.html":"https://sales.bnow.co.kr/";window.location.assign(target)}
 function openAttendanceBoard(){const params=new URLSearchParams();if(currentUser?.full_name)params.set("name",currentUser.full_name);if(currentUser?.email)params.set("email",currentUser.email);const query=params.toString();window.open(`https://checkinout-seven.vercel.app/check${query?`?${query}`:""}`,"_blank","noopener,noreferrer")}
 (function(){const label=document.getElementById("currentUserLabel");if(!label||document.getElementById("salesBoardBtn"))return;const button=document.createElement("button");button.id="salesBoardBtn";button.type="button";button.className="btn light top-action";button.textContent="영업관리";button.addEventListener("click",openSalesBoard);label.insertAdjacentElement("afterend",button)})();
 </script>

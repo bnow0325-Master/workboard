@@ -514,9 +514,12 @@ td strong {
 }
 
 .task-description {
+  display: block;
   max-width: 680px;
-  max-height: calc((1.55em * 5) + 16px);
+  max-height: 110px;
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
   scrollbar-gutter: stable;
   border-left: 3px solid #97b9b4;
   background: #f4faf8;
@@ -525,6 +528,7 @@ td strong {
   font-size: 12px;
   line-height: 1.55;
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 
 .urgency-badge {

@@ -11,7 +11,7 @@ type NotifyPayload = {
   message?: string;
   dueDate?: string;
   pageUrl?: string;
-  type?: "confirm_request" | "deadline" | "comment";
+  type?: "confirm_request" | "deadline" | "comment" | "schedule";
 };
 
 const recipientWebhookEnv: Record<string, string> = {
@@ -21,6 +21,17 @@ const recipientWebhookEnv: Record<string, string> = {
   "채민강": "JANDI_WEBHOOK_CHAE_MINKANG",
 };
 
+function parseWebhookMap() {
+  const raw = Deno.env.get("JANDI_WEBHOOK_URLS");
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
 function normalizeName(name?: string) {
   return String(name || "").trim();
 }
@@ -29,15 +40,18 @@ function pickWebhookUrl(payload: NotifyPayload) {
   const fallbackUrl = Deno.env.get("JANDI_WEBHOOK_URL") || "";
   const recipientName = normalizeName(payload.recipientName);
   const envName = recipientWebhookEnv[recipientName];
+  const webhookMap = parseWebhookMap();
 
-  if (!envName) return fallbackUrl;
+  if (!recipientName || recipientName === "전체") return fallbackUrl;
 
-  return Deno.env.get(envName) || fallbackUrl;
+  return (envName ? Deno.env.get(envName) : "") || webhookMap[recipientName] || fallbackUrl;
 }
 
 function buildJandiBody(payload: NotifyPayload) {
   const typeLabel =
-    payload.type === "deadline"
+    payload.type === "schedule"
+      ? "오늘의 일정"
+      : payload.type === "deadline"
       ? "마감 알림"
       : payload.type === "comment"
         ? "새 피드백"

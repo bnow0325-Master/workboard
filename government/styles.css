@@ -560,44 +560,84 @@ td strong {
   color: var(--danger);
 }
 
-.task-note-grid {
+.task-comment-box {
   display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 8px;
-  max-width: 620px;
+  max-width: 680px;
 }
 
-.task-note span {
-  margin-bottom: 4px;
+.task-comment-history {
+  display: grid;
+  gap: 5px;
+  max-height: 104px;
+  overflow-y: auto;
+  border: 1px solid #d6e0dc;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 8px;
+}
+
+.task-comment-line {
+  display: grid;
+  grid-template-columns: max-content max-content minmax(0, 1fr) max-content;
+  gap: 6px;
+  align-items: start;
+  color: #33433e;
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.task-comment-author {
+  color: var(--brand-dark);
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.task-comment-separator,
+.task-comment-line time {
+  color: var(--muted);
+}
+
+.task-comment-message {
+  min-width: 0;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.task-comment-empty {
+  color: var(--muted);
   font-size: 12px;
 }
 
-.task-note textarea {
-  min-height: 58px;
+.task-comment-compose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.task-comment-compose textarea {
+  min-height: 54px;
   border-radius: 6px;
   padding: 8px;
   font-size: 12px;
   line-height: 1.4;
+  resize: vertical;
 }
 
-.task-note-owner span,
-.task-note-owner textarea {
-  color: var(--danger);
+.task-comment-compose button {
+  min-width: 64px;
+  border: 1px solid var(--brand);
+  border-radius: 6px;
+  background: var(--brand);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 900;
 }
 
-.task-note-owner textarea {
-  border-color: #e8aaa3;
-  background: #fffafa;
-}
-
-.task-note-manager span,
-.task-note-manager textarea {
-  color: #151515;
-}
-
-.task-note-manager textarea {
-  border-color: #b9c5bf;
-  background: #ffffff;
+.task-comment-compose button:disabled {
+  cursor: wait;
+  opacity: 0.58;
 }
 
 .number-cell {
@@ -851,8 +891,12 @@ td strong {
     flex: 1 0 calc(50% - 6px);
   }
 
-  .task-note-grid {
-    grid-template-columns: 1fr;
+  .task-comment-line {
+    grid-template-columns: max-content max-content minmax(0, 1fr);
+  }
+
+  .task-comment-line time {
+    grid-column: 3;
   }
 }
 

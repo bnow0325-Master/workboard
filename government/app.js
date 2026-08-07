@@ -6,6 +6,8 @@ const SUPABASE_ANON_KEY = "sb_publishable_LGd8ijujuQtCRYQtlrgnqw_EWqvRW50";
 const CLOUD_SYNC_PROJECT_TITLE = "__BNOW_GOVERNMENT_BOARD_SYNC__";
 const CLOUD_SYNC_SCHEMA = "government-tasks-v1";
 const CLOUD_POLL_INTERVAL = 3000;
+const LEGACY_OWNER_NAME = "추동현";
+const LEGACY_MANAGER_NAME = "채민강";
 const STATUS_OPTIONS = ["준비중", "검토중", "제출완료", "합격", "불합격", "지원못함", "보류"];
 const MAIN_STATUS_OPTIONS = ["준비중", "검토중"];
 const STATUS_VIEWS = ["main", "제출완료", "합격", "불합격", "지원못함", "보류"];
@@ -50,6 +52,8 @@ let cloudSync = {
   ready: false,
   recordId: null,
   userEmail: "",
+  userName: "",
+  memberNames: new Map(),
   lastContent: "",
   lastRemoteRecordId: "",
   saveTimer: null,
@@ -100,9 +104,11 @@ function cleanTask(task) {
   const legacyRecommendationText = isRecommended && (legacyNotes.includes("추천점수") || rawManagerNote.includes("추천점수"));
   const description = String(task.description || (legacyRecommendationText ? (legacyNotes || rawManagerNote) : "")).trim();
   const managerNote = legacyRecommendationText && !task.description ? "" : String(task.managerNote ?? task.assigneeNote ?? (isRecommended ? "" : legacyNotes)).trim();
+  const ownerNote = String(task.ownerNote ?? task.myNote ?? "").trim();
+  const id = task.id || makeId(task.name || "task");
 
   return {
-    id: task.id || makeId(task.name || "task"),
+    id,
     name: String(task.name || "이름 없는 과제").trim(),
     organizer: String(task.organizer || "").trim(),
     startDate: normalizeDate(task.startDate),
@@ -116,8 +122,9 @@ function cleanTask(task) {
     noticeUrl: String(task.noticeUrl || "").trim(),
     notes: legacyNotes || managerNote,
     description,
-    ownerNote: String(task.ownerNote ?? task.myNote ?? "").trim(),
+    ownerNote,
     managerNote,
+    comments: normalizeTaskComments({ ...task, id }, ownerNote, managerNote),
     source: task.source || "manual",
     createdAt: task.createdAt || new Date().toISOString()
   };
@@ -130,6 +137,103 @@ function makeId(seed = "task") {
 
 function createTask(data) {
   return cleanTask({ ...data, id: makeId(data.name), createdAt: new Date().toISOString() });
+}
+
+function createTaskComment({ id, authorName, authorEmail, message, createdAt }) {
+  const text = String(message || "").trim();
+  if (!text) return null;
+  return {
+    id: id || makeId("comment"),
+    authorName: String(authorName || "사용자").trim(),
+    authorEmail: String(authorEmail || "").trim().toLowerCase(),
+    message: text,
+    createdAt: createdAt || new Date().toISOString()
+  };
+}
+
+function normalizeTaskComment(comment) {
+  if (typeof comment === "string") {
+    return createTaskComment({ message: comment, authorName: "사용자" });
+  }
+  return createTaskComment({
+    id: comment?.id,
+    authorName: comment?.authorName || comment?.writerName || comment?.author || "사용자",
+    authorEmail: comment?.authorEmail || comment?.writerEmail || "",
+    message: comment?.message || comment?.body || comment?.text || "",
+    createdAt: comment?.createdAt || comment?.created_at
+  });
+}
+
+function normalizeTaskComments(task, ownerNote = "", managerNote = "") {
+  const existing = Array.isArray(task.comments)
+    ? task.comments.map(normalizeTaskComment).filter(Boolean)
+    : [];
+  if (existing.length) return existing;
+
+  return [
+    createTaskComment({
+      id: `${task.id}-owner-note`,
+      authorName: LEGACY_OWNER_NAME,
+      message: ownerNote,
+      createdAt: task.createdAt
+    }),
+    createTaskComment({
+      id: `${task.id}-manager-note`,
+      authorName: LEGACY_MANAGER_NAME,
+      message: managerNote,
+      createdAt: task.createdAt
+    })
+  ].filter(Boolean);
+}
+
+function getCommentSearchText(task) {
+  return (task.comments || []).map((comment) => `${comment.authorName} ${comment.message}`).join(" ");
+}
+
+function resolveMemberName(email) {
+  const key = String(email || "").toLowerCase();
+  if (!key) return "";
+  return cloudSync.memberNames.get(key) || key.split("@")[0] || "";
+}
+
+function currentCommentAuthor() {
+  return {
+    authorEmail: cloudSync.userEmail || "",
+    authorName: cloudSync.userName || resolveMemberName(cloudSync.userEmail) || "사용자"
+  };
+}
+
+function formatCommentDateTime(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(date);
+}
+
+function renderTaskComments(task) {
+  const comments = task.comments || [];
+  const history = comments.length
+    ? comments.map((comment) => `
+      <div class="task-comment-line">
+        <span class="task-comment-author">${escapeHtml(comment.authorName || "사용자")}</span>
+        <span class="task-comment-separator">/</span>
+        <span class="task-comment-message">${escapeHtml(comment.message)}</span>
+        <time>${escapeHtml(formatCommentDateTime(comment.createdAt))}</time>
+      </div>`).join("")
+    : `<div class="task-comment-empty">아직 댓글이 없습니다.</div>`;
+
+  return `
+    <form class="task-comment-box" data-comment-form data-id="${escapeHtml(task.id)}">
+      <div class="task-comment-history">${history}</div>
+      <div class="task-comment-compose">
+        <textarea data-comment-input rows="2" placeholder="댓글을 입력하세요"></textarea>
+        <button type="submit">전송</button>
+      </div>
+    </form>`;
 }
 
 function normalizeDate(value) {
@@ -329,6 +433,21 @@ async function createCloudSyncRecord(userEmail, content = stringifyCloudPayload(
   return response.data;
 }
 
+async function loadMemberNames() {
+  if (!cloudSync.db) return;
+  try {
+    const response = await cloudSync.db
+      .from("app_members")
+      .select("email, full_name");
+    if (response.error) throw response.error;
+    cloudSync.memberNames = new Map((response.data || [])
+      .filter((member) => member.email)
+      .map((member) => [String(member.email).toLowerCase(), String(member.full_name || member.email).trim()]));
+  } catch (error) {
+    console.warn("member names unavailable", error);
+  }
+}
+
 function applyCloudRecord(record) {
   const parsed = parseCloudPayload(record?.content);
   if (!parsed?.tasks?.length) return false;
@@ -420,6 +539,9 @@ async function initCloudSync() {
 
     setSyncStatus("동기화 연결 중", "pending");
     cloudSync.userEmail = session.user.email.toLowerCase();
+    cloudSync.userName = String(session.user.user_metadata?.full_name || session.user.user_metadata?.name || "").trim() || resolveMemberName(cloudSync.userEmail);
+    await loadMemberNames();
+    cloudSync.userName = resolveMemberName(cloudSync.userEmail) || cloudSync.userName || "사용자";
     const records = await findCloudSyncRecords();
     const latestRecord = pickLatestCloudRecord(records);
     let ownRecord = records.find((record) => record.title === ownCloudSyncTitle(cloudSync.userEmail));
@@ -494,7 +616,7 @@ function render() {
   const filteredTasks = tasks
     .filter((task) => {
       const matchesStatus = matchesStatusView(task, status);
-      const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.description} ${task.ownerNote} ${task.managerNote} ${task.noticeUrl}`.toLowerCase();
+      const haystack = `${task.name} ${task.organizer} ${task.resultStatus} ${task.originalResult} ${task.selectedStatus} ${task.notes} ${task.description} ${task.ownerNote} ${task.managerNote} ${getCommentSearchText(task)} ${task.noticeUrl}`.toLowerCase();
       return matchesStatus && haystack.includes(query);
     })
     .sort(compareTasksByDueUrgency);
@@ -539,10 +661,7 @@ function render() {
           <div class="task-title-wrap">
             <div class="task-name-line"><strong>${escapeHtml(task.name)}</strong>${urgencyBadge}</div>
             ${task.description ? `<div class="task-description">${escapeHtml(task.description)}</div>` : ""}
-            <div class="task-note-grid">
-              <label class="task-note task-note-owner"><span>대표</span><textarea data-note-field="ownerNote" data-id="${taskId}" placeholder="대표 메모">${escapeHtml(task.ownerNote)}</textarea></label>
-              <label class="task-note task-note-manager"><span>실무자</span><textarea data-note-field="managerNote" data-id="${taskId}" placeholder="실무자 메모">${escapeHtml(task.managerNote)}</textarea></label>
-            </div>
+            ${renderTaskComments(task)}
           </div>
         </td>
         <td><span>${formatDate(task.dueDate)}</span>${dueLabel ? `<small class="due-label">${escapeHtml(dueLabel)}</small>` : ""}</td>
@@ -659,15 +778,45 @@ function importFromPaste() {
   render();
 }
 
-function updateTaskNote(taskId, field, value) {
-  if (!["ownerNote", "managerNote"].includes(field)) return;
-  tasks = tasks.map((task) => {
-    if (task.id !== taskId) return task;
-    const updated = { ...task, [field]: value };
-    if (field === "managerNote") updated.notes = value;
-    return updated;
-  });
+async function notifyTaskComment(task, comment) {
+  if (!cloudSync.db?.functions?.invoke) return false;
+  try {
+    const { error } = await cloudSync.db.functions.invoke("notify-jandi", {
+      body: {
+        type: "comment",
+        projectTitle: `[정부과제] ${task.name}`,
+        recipientName: "",
+        senderName: comment.authorName,
+        message: comment.message,
+        dueDate: task.dueDate,
+        pageUrl: `${window.location.origin}${window.location.pathname}`
+      }
+    });
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error("Jandi notification failed", error);
+    return false;
+  }
+}
+
+async function addTaskComment(taskId, message) {
+  const task = tasks.find((item) => item.id === taskId);
+  if (!task) return false;
+  const author = currentCommentAuthor();
+  const comment = createTaskComment({ ...author, message });
+  if (!comment) return false;
+
+  tasks = tasks.map((item) => item.id === taskId
+    ? { ...item, comments: [...(item.comments || []), comment] }
+    : item);
   saveTasks();
+  render();
+
+  const updatedTask = tasks.find((item) => item.id === taskId) || task;
+  const notified = await notifyTaskComment(updatedTask, comment);
+  setSyncStatus(notified ? "댓글 저장 · 잔디 전송" : "댓글 저장 · 잔디 전송 실패", notified ? "ok" : "warn");
+  return true;
 }
 
 function updateTaskStatus(taskId, value) {
@@ -679,8 +828,20 @@ function updateTaskStatus(taskId, value) {
 }
 
 function exportCsv() {
-  const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "대표", "실무자"];
-  const rows = tasks.map((task, index) => [index + 1, task.name, task.organizer, task.dueDate, task.submittedDate, task.resultStatus, task.originalResult, task.selectedStatus, task.grantAmount, task.noticeUrl, task.ownerNote, task.managerNote || task.notes]);
+  const header = ["순번", "과제명", "주관기관", "마감일", "제출일", "상태", "원본결과", "선정여부", "지원금(만원)", "공고/링크", "댓글 히스토리"];
+  const rows = tasks.map((task, index) => [
+    index + 1,
+    task.name,
+    task.organizer,
+    task.dueDate,
+    task.submittedDate,
+    task.resultStatus,
+    task.originalResult,
+    task.selectedStatus,
+    task.grantAmount,
+    task.noticeUrl,
+    (task.comments || []).map((comment) => `${comment.authorName} / ${comment.message}`).join("\n")
+  ]);
   const csv = [header, ...rows].map((row) => row.map((cell) => `"${String(cell ?? "").replaceAll('"', '""')}"`).join(",")).join("\n");
   const blob = new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" });
   const link = document.createElement("a");
@@ -717,10 +878,18 @@ pageSizeSelect?.addEventListener("change", () => { resetPagination(); render(); 
 prevPageButton?.addEventListener("click", () => { currentPage -= 1; render(); });
 nextPageButton?.addEventListener("click", () => { currentPage += 1; render(); });
 
-taskTableBody.addEventListener("input", (event) => {
-  const noteField = event.target.closest("[data-note-field]");
-  if (!noteField) return;
-  updateTaskNote(noteField.dataset.id, noteField.dataset.noteField, noteField.value);
+taskTableBody.addEventListener("submit", async (event) => {
+  const form = event.target.closest("[data-comment-form]");
+  if (!form) return;
+  event.preventDefault();
+  const input = form.querySelector("[data-comment-input]");
+  const button = form.querySelector("button[type='submit']");
+  const message = input?.value.trim() || "";
+  if (!message) return;
+  if (button) button.disabled = true;
+  const saved = await addTaskComment(form.dataset.id, message);
+  if (saved && input) input.value = "";
+  if (button) button.disabled = false;
 });
 
 taskTableBody.addEventListener("change", (event) => {

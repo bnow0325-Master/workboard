@@ -16,6 +16,7 @@ type NotifyPayload = {
 
 const recipientWebhookEnv: Record<string, string> = {
   "WEI": "JANDI_WEBHOOK_WEI",
+  "손근혁": "JANDI_WEBHOOK_SON_GEUNHYEOK",
   "최창혁": "JANDI_WEBHOOK_CHOI_CHANGHYUK",
   "박수민": "JANDI_WEBHOOK_PARK_SUMIN",
   "채민강": "JANDI_WEBHOOK_CHAE_MINKANG",
